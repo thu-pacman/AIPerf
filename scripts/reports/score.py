@@ -51,6 +51,7 @@ def find_all_trials(nnidir, expid, trial_id_list):
             elif not f_list[index].strip():
                 continue
         if hp_list:
+            print(trial_id, hp_list)
             experiment_data[trial_id] = hp_list
     return experiment_data
 
@@ -134,10 +135,10 @@ def find_startime(trial_id_list, t, experiment_path):
 
 def process_log(trial_id_list, experiment_data, dur, experiment_path):
     results = {}
-    results['real_time'] = []
-    results['GFLOPS'] = []
-    results['Error'] = []
-    results['Score'] = []
+    results['real_time'] = ['0.00']
+    results['GFLOPS'] = ['0.0']
+    results['Error'] = ['100.00']
+    results['Score'] = ['0.0']
     flops_info = profiler.profiler(experiment_path)
     for index in np.arange(0.2, dur+0.1, 0.1):
         start_time,stop_time = find_startime(trial_id_list, index, experiment_path)
@@ -167,6 +168,9 @@ def process_log(trial_id_list, experiment_data, dur, experiment_path):
         fraction = float(float(total_FLOPs) * float(abs(math.log(1-max_acc,math.e)))) / float(run_sec)
         fraction = fraction / (10**9)
 
+        if run_sec < 0:
+            continue
+
         results['real_time'].append('{:.2f}'.format(run_sec / 3600.))
         results['GFLOPS'].append('{:.1f}'.format(float(total_FLOPs) / float(run_sec) / (10**9)))
         results['Error'].append('{:.2f}'.format(100 - max_acc * 100))
@@ -187,6 +191,7 @@ def cal_report_results(expid):
     #根据 sequence_id 由大到小排序 id_dict = {sequence_id : trial_id}
     id_dict = sorted(zip(id_dict.keys(),id_dict.values()))
     id_dict = dict(id_dict)
+    print("id dict:",id_dict)
     trial_id_list = list(id_dict.values())
  
     start_time_list = []
@@ -200,12 +205,13 @@ def cal_report_results(expid):
                 start_time = time.mktime(time.strptime(hyperparameter['start_date'], "%m/%d/%Y, %H:%M:%S"))
                 start_time_list.append(start_time)
     start_time = min(start_time_list)
-
+    print("start time:",start_time)
     experiment_data = find_all_trials(nnidir, expid, trial_id_list)
     for index in range(len(trial_id_list)-1,-1,-1):
         if trial_id_list[index] in experiment_data:
             stop_time = experiment_data[trial_id_list[index]][-1][-1][1]
             break
+    print("stop time:",stop_time)
     dur = (stop_time - start_time) / 3600.
     results = process_log(trial_id_list, experiment_data, dur, experiment_path)
     return results, trial_id_list, experiment_data

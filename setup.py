@@ -32,15 +32,16 @@ setup(
         'astor',
         'hyperopt==0.1.2',
         'json_tricks',
-        'numpy',
+        'numpy==1.18.5',
         'psutil',
         'ruamel.yaml',
         'requests',
-        'scipy',
+        'scipy==1.4.1',
         'schema',
         'PythonWebHDFS',
         'colorama',
-        'scikit-learn>=0.20,<0.22'
+        'scikit-learn>=0.20,<0.22',
+        'pymongo<4.0'
     ],
 
     entry_points = {

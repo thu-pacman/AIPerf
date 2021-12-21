@@ -63,7 +63,7 @@ def main(args, save_folder):
     main_grid(results['real_time'], results['GFLOPS'], save_folder, 'Score (in GFLOPS).png')
     main_grid(results['real_time'], results['Error'], save_folder, 'Error(%).png')
     main_grid(results['real_time'], results['Score'], save_folder, 'Regulated Score (in GFLOPS).png')
-    errorth = 30.0
+    errorth = 95.0
     logs = "======================================================================\n"
     if float(results['Error'][-1]) > errorth:
         logs += "!!! Test failed due to low accuracy !!!\n"

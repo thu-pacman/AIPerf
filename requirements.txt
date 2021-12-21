@@ -9,4 +9,5 @@ tensorboard==2.2.0
 tensorflow_gpu==2.2.0
 torch==1.2.0
 zmq==0.0.0
-gpustat
+gpustat==0.4.1
+joblib==0.14.1

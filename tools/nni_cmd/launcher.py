@@ -39,10 +39,7 @@ def print_log_content(config_file_name):
 
 def start_monitor(experiment_id):
     '''Run resource monitor'''
-    slurm_nodes = os.popen("cat /etc/slurm-llnl/slurm.conf |grep NodeName|wc -l")
-    slurm_nodes = slurm_nodes.read().strip()
-    cmd = "srun -N " + slurm_nodes + " -n " + slurm_nodes + " python3 resource_monitor.py --id " + experiment_id + " &"
-    os.system(cmd)
+    pass
 
 def start_rest_server(port, platform, mode, config_file_name, foreground=False, experiment_id=None, log_dir=None, log_level=None):
     '''Run nni manager process'''
@@ -499,7 +496,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
             kill_command(rest_process.pid)
             print_normal('Stopping experiment...')
     #run resource monirot
-    start_monitor(experiment_id)
+    # start_monitor(experiment_id)
 
 def create_experiment(args):
     '''start a new experiment'''
