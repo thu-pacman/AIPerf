@@ -26,7 +26,7 @@ trial:
            /GPUFS/thu_wgchen_2/aiperf/AIPerf-wxp/submitter.py \
            python3 imagenet_train.py \
            --slave 16 \
-           --ip 89.72.31.2 \
+           --ip 255.255.255.255 \
            --batch_size 128 \
            --warmup_1 15 --warmup_2 30 --warmup_3 45 --epoch 60 \
            --initial_lr 1e-1 \

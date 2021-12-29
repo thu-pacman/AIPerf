@@ -175,7 +175,7 @@ def sshExec(server, trial):
         )
     
     bashCmd += (
-        "/usr/bin/curl --location --request POST 'http://89.72.31.2:9987/api/trial/finish' " +
+        "/usr/bin/curl --location --request POST 'http://255.255.255.255:9987/api/trial/finish' " +
         "--header 'Content-Type: application/json' --data '{\"trial\":\""
         +trial["env"]["NNI_TRIAL_JOB_ID"] +"\"}'"
     )

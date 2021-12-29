@@ -25,7 +25,6 @@ AIPerf Benchmark基于微软NNI开源框架，以自动化机器学习（AutoML�
 
 ### <span id="head5"> 一、Benchmark环境配置、安装要求</span>
 
-*(本文档默认物理机环境已经安装docker、nvidia-docker)*
 
 Benchmark运行环境由Master节点-Slaves节点组成，其中Mater节点不参与调度不需要配置GPU/加速卡，Slave节点可配置多块加速卡。
 
@@ -109,8 +108,6 @@ touch /userhome/test
 
 #### <span id="head9"> 2.数据集制作</span>
 
-制作数据集建议在已做好容器内操作，里面包含了制作数据集需要的基本环境。
-
 **数据集下载**
 
  *Imagenet官方地址：http://www.image-net.org/index* 
@@ -163,82 +160,7 @@ mv ILSVRC2012/output/train-* /root/datasets/imagenet/train
 mv ILSVRC2012/output/validation-* /root/datasets/imagenet/val
 ```
 
-#### <span id="head7"> 3.容器制作</span>
-
-(容器内执行)
-
-**物理机下载基础镜像**
-
-针对NVIDIA V100
-```
-docker pull nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
-```
-针对NVIDIA A100
-```
-docker pull nvidia/cuda:11.1-cudnn8-devel-ubuntu16.04
-```
-
-**启动容器**
-
-针对NVIDIA V100
-```
-nvidia-docker run -it --name build_AIPerf -v /userhome:/userhome -v /root/dataset:root/dataset nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
-```
-针对NVIDIA A100
-```
-nvidia-docker run -it --name build_AIPerf -v /userhome:/userhome -v /root/dataset:root/dataset nvidia/cuda:11.1-cudnn8-devel-ubuntu16.04
-```
-
-**安装基础工具**
-
-```
-apt update && apt install git vim cmake make openssh-client openssh-server wget tzdata  curl sshpass -y
-```
-
-*配置ssh-server*
-
-开启ssh root登录权限,修改ssh配置文件 /etc/ssh/sshd_config
-
-```
-vim /etc/ssh/sshd_config
-```
-
-找到PermitRootLogin prohibit-password所在行，并修改为
-
-```
-PermitRootLogin yes
-```
-
-避免和物理机端口冲突，打开配置文件 /etc/ssh/sshd_config，修改ssh端口22为222
-
-```
-port 222
-```
-
-*为root用户设置密码*
-
-```
-passwd
-```
-
-密码设置为123123
-
-*配置时区*
-
-```
-dpkg-reconfigure tzdata
-```
-
-选择Asia -> Shanghai
-
-*配置中文支持和环境变量*
-
-在/etc/bash.bashrc最后添加
-
-```
-export LANG=C.UTF-8
-export TF_XLA_FLAGS="--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
-```
+#### <span id="head7"> 3.安装依赖制作</span>
 
 **配置python运行环境**
 
@@ -285,12 +207,6 @@ nnictl --help
 
 如果打印帮助信息，则安装正常
 
-**安装slurm**
-
-```
-apt install munge slurm-llnl -y
-```
-
 **目录调整**
 
 *创建必要的目录*
@@ -317,91 +233,25 @@ ln -s /userhome/nni /root/nni
 wget -P /userhome https://github.com/AI-HPC-Research-Team/Weight/releases/download/AIPerf1.0/resnet50_weights_tf_dim_ordering_tf_kernels.h5
 ```
 
+在共享目录下配置slave机的总数
 
-#### <span id="head8"> 4.容器部署</span>
-
-(物理机执行)
-
-**提交容器为镜像**
-
-```
-sudo docker commit build_AIPerf aiperf:latest
+```shell
+echo 16 > /userhome/trial_concurrency.txt
 ```
 
-**导出镜像**
+**启动调度服务**
 
-将容器导出到之前创建好的共享目录/userhome，方便其它节点导入
+进入 aiperf_ctrl服务，配置 servers.json ，每张计算卡的描述包括`ip`和`CUDA_VISIBLE_DEVICES`两部分，应保证servers.json的list的长度恰好等于等待测试的计算卡总数，也等于之前填写的trial_concurrency.txt内的数字
 
-```
-sudo docker save -o /userhome/AIPerf.tar aiperf:latest
-```
+slave节点和调度服务通过http协议进行运行时信息交互，请在全文搜索四处`255.255.255.255`，并替换为本机的IP地址
 
-**导入镜像**
+例如，本机的ip地址为127.0.0.1，请在aiperf_ctrl下执行
 
-参与实验的所有节点导入镜像，由于镜像需要通过NFS传输到其他节点，需要一些时间
-
-```
-sudo docker load -i /userhome/AIPerf.tar
+```python3
+python3 manage.py runserver 127.0.0.1:9987
 ```
 
-**运行容器**
-
-参与实验的所有节点运行容器
-
-```
-sudo nvidia-docker run -it --net=host -v /userhome:/userhome -v /root/dataset:root/dataset aiperf:latest
-```
-
-**配置容器**
-
-(容器内操作)
-
-*所有节点容器重启ssh服务*
-
-```
-service ssh restart
-```
-
-*配置slurm*
-
-以下操作在master节点进行，slurm将获取所有slave节点中cpu核数最低的节点的核数，并将该核数配置为每个slave节点的最高可用核数，而并非每个节点各自的实际核数。
-
-进入/userhome/AIPerf/scripts/autoconfig_slurm目录
-
-```
-cd /userhome/AIPerf/scripts/autoconfig_slurm
-```
-
-*进行ip地址配置*
-
-1. 将所有slave节点ip按行写入slaveip.txt。
-2. 将master节点ip写入masterip.txt。
-3. 确保所有节点的ssh用户、密码、端口是一致的，并根据自身情况修改 slurm_autoconfig.sh脚本中的用户名和密码。
-
-*运行自动配置脚本*
-
-```
-bash slurm_autoconfig.sh
-```
-
-slurm配置完成后会提示当前所有节点最高可用核数并给出后续config.yml中slurm的运行参数`srun --cpus-per-task=xx`
-
-*检查slurm*
-
-执行命令查看所有节点状态
-
-```
-sinfo
-```
-
-如果所有节点STATE列为idle则slurm配置正确，运行正常。
-
-如果STATE列为unk，等待一会再执行sinfo查看，如果都为idle，则slurm配置正确，运行正常。
-
-如果STATE列的状态后面带*则该节点网络出现问题master无法访问到该节点。
-
-
-
+并保持该服务一直运行
 
 ### <span id="head10"> 二、Benchmark测试规范</span>
 
@@ -457,9 +307,8 @@ tuner:
   
 trial:
  command: CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7  \                                  # 3
-       srun -N 1 -n 1 --ntasks-per-node=1 \
-       --cpus-per-task=30 \	  # 4
-       python3 imagenet_tfkeras_slurm_hpo.py \
+       /GPUFS/thu_wgchen_2/aiperf/AIPerf-wxp/submitter.py \ # 请修改为正确的submitter 地址
+       python3 imagenet_train.py \
        --slave 1 \								  # 5
        --ip 127.0.0.1 \							  # 6
        --batch_size 448 \						  # 7
@@ -552,14 +401,6 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs T
 
 
 ***NOTE: 推荐基于Intel Xeon Skylake Platinum8268 and NVIDIA Tesla NVLink v100配置***
-
-
-
-
-
-## <span id="head17"> Benchmark报告反馈</span>
-
-若测试中遇到问题，请联系renzhx@pcl.ac.cn，并附上`/userhome/mountdir/nni/experiments/experiment_ID/results/`中的html版报告。
 
 ## <span id="head18"> 许可</span>
 

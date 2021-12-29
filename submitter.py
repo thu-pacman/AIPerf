@@ -16,7 +16,7 @@ TARGET_OS_ENV = [
     "CUDA_VISIBLE_DEVICES",
 ]
 
-URL="http://89.72.31.2:9987/api/trial/create"
+URL="http://255.255.255.255:9987/api/trial/create"
 
 if __name__ == "__main__":
     print("reveive submitter!!!")
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     print(res.json()["success"])
 
     while(True):
-        URL="http://89.72.31.2:9987/api/trial/query?"+os.environ.get("NNI_TRIAL_JOB_ID")
+        URL="http://255.255.255.255:9987/api/trial/query?"+os.environ.get("NNI_TRIAL_JOB_ID")
         headers = {'Content-Type': 'application/json;charset=UTF-8'}
         data={"trial":os.environ.get("NNI_TRIAL_JOB_ID")}
         res = requests.post(
