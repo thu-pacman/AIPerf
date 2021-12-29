@@ -53,7 +53,7 @@ logging.basicConfig(
 logger = logging.getLogger("Imagenet-network-morphism-tfkeras")
 
 config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
+# config.gpu_options.allow_growth = True
 
 # imagenet2012
 Ntrain = 1281167
@@ -301,6 +301,7 @@ def train_eval(esargs, RCV_CONFIG, seqid):
 
 
 if __name__ == "__main__":
+    print("start")
     example_start_time = time.time()
     net = None
     args = get_args()
@@ -365,6 +366,7 @@ if __name__ == "__main__":
                     json_father_id -= 1
                 else:
                     break
+        print("checkpoint 1")
         train_num = 0
         TPE = TPEtuner.HyperoptTuner('tpe')
         TPE.update_search_space(search_space)

@@ -1,8 +1,8 @@
 authorName: default
 experimentName: example_imagenet-network-morphism-test
-trialConcurrency: 2
-maxExecDuration: 3h
-maxTrialNum: 30
+trialConcurrency: 16
+maxExecDuration: 30h
+maxTrialNum: 300
 trainingServicePlatform: local
 useAnnotation: false
 logLevel: trace
@@ -23,17 +23,17 @@ tuner:
     n_output_node: 1000
 trial:
   command: CUDA_VISIBLE_DEVICES=0 \
-           /mnt/zoltan/public/dataset/imagenet/submitter.py \
+           /GPUFS/thu_wgchen_2/aiperf/AIPerf-wxp/submitter.py \
            python3 imagenet_train.py \
-           --slave 2 \
-           --ip 172.23.33.30 \
-           --batch_size 448 \
-           --warmup_1 2 --warmup_2 3 --warmup_3 3 --epoch 10 \
+           --slave 16 \
+           --ip 255.255.255.255 \
+           --batch_size 128 \
+           --warmup_1 15 --warmup_2 30 --warmup_3 45 --epoch 60 \
            --initial_lr 1e-1 \
            --final_lr 0 \
            --num_parallel_calls 30 \
-           --train_data_dir /mnt/zoltan/public/dataset/imagenet/final/train/ \
-           --val_data_dir /mnt/zoltan/public/dataset/imagenet/final/val/ 
+           --train_data_dir /GPUFS/thu_wgchen_2/aiperf/data/train/ \
+           --val_data_dir /GPUFS/thu_wgchen_2/aiperf/data/val/ 
 
   codeDir: .
   gpuNum: 0

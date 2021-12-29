@@ -967,7 +967,7 @@ class TfModel:
         self.count = 0
         self.loadh5 = 0
         try:
-            with h5py.File("/mnt/zoltan/public/dataset/imagenet/resnet50_weights_tf_dim_ordering_tf_kernels.h5", 'r') as f:
+            with h5py.File("/GPUFS/thu_wgchen_2/download/resnet50_weights_tf_dim_ordering_tf_kernels.h5", 'r') as f:
                 layer_names = self.load_attributes_from_hdf5_group(f, 'layer_names')
                 filtered_layer_names = []
                 for name in layer_names:

@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as sqlite3 from 'sqlite3';
+import * as sqlite3 from 'sqlite3-offline';
 import { Deferred } from 'ts-deferred';
 
 import {
