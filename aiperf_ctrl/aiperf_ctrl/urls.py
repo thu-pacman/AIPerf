@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/trial/heartbeat', trial.heartbeat),
     path('api/trial/stop', trial.stop_all),
     path('api/trial/clear', trial.clear),
+    path('api/trial/query', trial.query_trial),
 ]

@@ -48,7 +48,7 @@ NNI_PKG_FOLDER ?= $(ROOT_FOLDER)/nni
 NASUI_PKG_FOLDER ?= $(ROOT_FOLDER)/nni/nasui
 
 ## Dependency information
-NNI_DEPENDENCY_FOLDER = /tmp/$(USER)
+NNI_DEPENDENCY_FOLDER = /GPUFS/thu_wgchen_2/aiperf/tmp/$(USER)
 $(shell mkdir -p $(NNI_DEPENDENCY_FOLDER))
 NNI_NODE_TARBALL ?= $(NNI_DEPENDENCY_FOLDER)/nni-node-$(OS_SPEC)-x64.tar.xz
 NNI_NODE_FOLDER = $(NNI_DEPENDENCY_FOLDER)/nni-node-$(OS_SPEC)-x64
@@ -67,7 +67,7 @@ NNI_VERSION_TEMPLATE = 999.0.0-developing
 .PHONY: build
 build:
 	#$(_INFO) Building NNI Manager $(_END)
-	cd src/nni_manager && $(NNI_YARN) && $(NNI_YARN) build
+	cd src/nni_manager && $(NNI_YARN) --offline && $(NNI_YARN) build
 	cp -rf src/nni_manager/config src/nni_manager/dist/
 
 # All-in-one target for non-expert users
@@ -186,7 +186,7 @@ install-node-modules:
 	cp -r src/nni_manager/dist $(NNI_PKG_FOLDER)
 	cp src/nni_manager/package.json $(NNI_PKG_FOLDER)
 	sed -ie 's/$(NNI_VERSION_TEMPLATE)/$(NNI_VERSION_VALUE)/' $(NNI_PKG_FOLDER)/package.json
-	$(NNI_YARN) --prod --cwd $(NNI_PKG_FOLDER)
+	$(NNI_YARN) --offline --prod --cwd $(NNI_PKG_FOLDER)
 
 
 .PHONY: dev-install-node-modules

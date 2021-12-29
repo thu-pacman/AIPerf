@@ -139,6 +139,10 @@ def process_log(trial_id_list, experiment_data, dur, experiment_path):
     results['GFLOPS'] = ['0.0']
     results['Error'] = ['100.00']
     results['Score'] = ['0.0']
+    results['real_time'] = []
+    results['GFLOPS'] = []
+    results['Error'] = []
+    results['Score'] = []
     flops_info = profiler.profiler(experiment_path)
     for index in np.arange(0.2, dur+0.1, 0.1):
         start_time,stop_time = find_startime(trial_id_list, index, experiment_path)
@@ -207,9 +211,10 @@ def cal_report_results(expid):
     start_time = min(start_time_list)
     print("start time:",start_time)
     experiment_data = find_all_trials(nnidir, expid, trial_id_list)
+    stop_time=0
     for index in range(len(trial_id_list)-1,-1,-1):
         if trial_id_list[index] in experiment_data:
-            stop_time = experiment_data[trial_id_list[index]][-1][-1][1]
+            stop_time = max(stop_time,experiment_data[trial_id_list[index]][-1][-1][1])
             break
     print("stop time:",stop_time)
     dur = (stop_time - start_time) / 3600.

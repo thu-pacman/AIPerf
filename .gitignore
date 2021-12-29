@@ -6,3 +6,4 @@ src/nni_manager/node_modules/
 src/nni_manager/dist/
 
 **/__pycache__/
+**/build/

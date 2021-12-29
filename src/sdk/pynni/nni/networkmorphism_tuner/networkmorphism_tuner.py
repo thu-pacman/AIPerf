@@ -24,6 +24,8 @@
 import logging
 import os
 
+import logging
+
 
 from nni.tuner import Tuner
 from nni.utils import OptimizeMode, extract_scalar_reward
