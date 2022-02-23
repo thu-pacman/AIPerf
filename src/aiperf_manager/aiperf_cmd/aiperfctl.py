@@ -4,6 +4,7 @@ import os
 import json
 from signal import signal
 from time import sleep
+from django import dispatch
 from .launcher_utils import validate_all_content
 import pkg_resources
 from colorama import init
@@ -16,6 +17,10 @@ import base64
 import signal
 import subprocess
 import threading
+import requests
+import signal
+import sys
+
 init(autoreset=True)
 logger = logging.getLogger("aiperfctrl")
 log_format = "INFO: %(asctime)s %(message)s"
@@ -29,6 +34,7 @@ if os.environ.get('COVERAGE_PROCESS_START'):
     import coverage
     coverage.process_startup()
 
+SUBMIT_URL="http://192.168.120.130:9987/api/trial/create"
 """
 /**
  * Generate command line to start automl algorithm(s),
@@ -77,7 +83,17 @@ def read_response(fio):
     logging.getLogger(__name__).debug('Received command, data: [%s...]', data[:40])
     return command, data
 
+dispatch_pid = -1
+
+def term_sig_handler(signum, frame):
+    if(dispatch_pid!=-1):
+        os.kill(dispatch_pid, signal.SIGKILL)
+    sleep(3)
+    logger.info("AIPerf controller exit!")
+    sys.exit()
+
 def start_dispatcher(experiment_config):
+    global dispatch_pid
     msg_dispatcher_command = "/usr/bin/python3 -m nni --exp_params {}".format(
         base64.b64encode(json.dumps(experiment_config).encode()).decode()
     )
@@ -90,6 +106,7 @@ def start_dispatcher(experiment_config):
         stderr=subprocess.PIPE,
         close_fds=True
     )
+    dispatch_pid = process.pid
     logger.info("dispatcher pid : {}".format(process.pid))
     child_stdin = process.stdin
     child_stderr = process.stderr
@@ -139,11 +156,13 @@ class TrialInfo:
         data["env"]["TRIAL_CONCURRENCY"] = "{}".format(self.trial_concurrency)
         return data
 
-RUNNING_TRIALS_POOL = []
 TRIALS_LIST = []
 
 def launch_experiment(args, experiment_config, mode, config_file_name, experiment_id=None):
     '''follow steps to start rest server and start experiment'''
+    signal.signal(signal.SIGTERM, term_sig_handler)
+    signal.signal(signal.SIGINT, term_sig_handler)
+    global dispatch_pid
     logger.info("launch_experiment")
     # 0. warm up
     try :
@@ -207,11 +226,62 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
             trial_concurrency,
             experiment_config["trial"]["command"].replace("\\", "", 999999)
         )
+        TRIALS_LIST.append(t)
         next_trial_seq_id += 1
-        # logger.info(t.to_submit_data())
+        headers = {'Content-Type': 'application/json;charset=UTF-8'}
+        res = requests.post(
+            SUBMIT_URL,
+            headers = headers,
+            json=t.to_submit_data()
+        )
 
     while True:
         logging.info("Current max trial id: {}".format(next_trial_seq_id-1))
+
+        for t in TRIALS_LIST:
+            if t.status == "finish":
+                continue
+            QUERY_URL="http://192.168.120.130:9987/api/trial/query?"+t.trial_id
+            headers = {'Content-Type': 'application/json;charset=UTF-8'}
+            data={"trial":t.trial_id}
+            res = requests.post(
+                QUERY_URL,
+                headers = headers,
+                json=data
+            )
+            if res.json()["status"]=="finish":
+                logger.info("{} finish".format(t.trial_id))
+                t.status = "finish"
+                # New trial
+                NNI_TRIAL_SEQ_ID = str(next_trial_seq_id)
+                NNI_TRIAL_ID = "".join(random.sample(string.ascii_letters + string.digits, 5))
+                NNI_SYS_DIR = NNI_TRIALS_DIR + "/" + NNI_TRIAL_ID
+                NNI_OUTPUT_DIR = NNI_TRIALS_DIR + "/" + NNI_TRIAL_ID
+                os.mkdir(NNI_SYS_DIR)
+                NNI_PARAM_PATH = NNI_SYS_DIR + "/parameter.cfg"
+                gen_cmd = 'GE0000011'
+                child_stdin.write(gen_cmd.encode())
+                child_stdin.flush()
+                command, data = read_response(child_stderr)
+                f = open(NNI_PARAM_PATH, "w")
+                f.write(data)
+                f.close()
+                t = TrialInfo(
+                    NNI_EXP_ID,
+                    NNI_TRIAL_ID,
+                    NNI_TRIAL_SEQ_ID,
+                    NNI_SYS_DIR,
+                    NNI_OUTPUT_DIR,
+                    trial_concurrency,
+                    experiment_config["trial"]["command"].replace("\\", "", 999999)
+                )
+                TRIALS_LIST.append(t)
+                headers = {'Content-Type': 'application/json;charset=UTF-8'}
+                res = requests.post(
+                    SUBMIT_URL,
+                    headers = headers,
+                    json=t.to_submit_data()
+                )
 
         if next_trial_seq_id >= experiment_config["maxTrialNum"]:
             break
@@ -222,7 +292,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     child_stdin.flush()
     sleep(3)
     os.kill(process.pid, signal.SIGKILL)
-    raise Exception("not implementation error")
+    return
 
 def create_experiment(args):
     '''start a new experiment'''
