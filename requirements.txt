@@ -18,8 +18,8 @@ numpy==1.18.4
 nvidia-ml-py3==7.352.0
 sklearn==0.0
 sqlparse==0.4.2
-tensorboard==2.2.0
-tensorflow_gpu==2.2.0
+tensorboard==1.15.0
+tensorflow_gpu==1.15.0
 termcolor==1.1.0
 torch==1.2.0
 torchvision==0.4.0

@@ -152,7 +152,7 @@ def sshExec(server, trial):
     global SERVER_LIST, TRIAL_LIST
     bashCmd = (
         "#!/bin/bash -l\nsource /usr/local/Modules/init/bash\n"+ 
-        "module load cuda-10.2/cuda cuda-10.2/cudnn-7.6.5\n"+
+        "module load cuda-10.0/cuda cuda-10.0/cudnn-7.4.2\n"+
         "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/wxp\n"
     )
 

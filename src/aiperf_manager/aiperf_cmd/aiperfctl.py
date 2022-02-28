@@ -87,17 +87,25 @@ def read_response(fio):
     return command, data
 
 dispatch_pid = -1
+SUBMIT_URL=""
+HEARTBEAT_URL=""
+STOP_URL=""
+CLEAR_URL=""
 
 def term_sig_handler(signum, frame):
+    global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
     logger.info("AIPerf controller exiting")
+    headers = {'Content-Type': 'application/json;charset=UTF-8'}
     if(dispatch_pid!=-1):
         os.kill(dispatch_pid, signal.SIGKILL)
+    requests.get(STOP_URL, headers=headers)
+    requests.get(CLEAR_URL, headers=headers)
     sleep(1)
     logger.info("AIPerf controller exit!")
     sys.exit()
 
 def start_dispatcher(experiment_config):
-    global dispatch_pid
+    global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
     msg_dispatcher_command = "/usr/bin/python3 -m nni --exp_params {}".format(
         base64.b64encode(json.dumps(experiment_config).encode()).decode()
     )
@@ -164,6 +172,7 @@ TRIALS_LIST = []
 
 def launch_experiment(args, experiment_config, mode, config_file_name, experiment_id=None):
     '''follow steps to start rest server and start experiment'''
+    global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
     headers = {'Content-Type': 'application/json;charset=UTF-8'}
     SUBMIT_URL="{}/api/trial/create".format(args.server)
     HEARTBEAT_URL = "{}/api/trial/heartbeat".format(args.server)
@@ -171,7 +180,6 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     CLEAR_URL = "{}/api/trial/clear".format(args.server)
     signal.signal(signal.SIGTERM, term_sig_handler)
     signal.signal(signal.SIGINT, term_sig_handler)
-    global dispatch_pid
     logger.info("launch_experiment")
     # 0. warm up
     try :
