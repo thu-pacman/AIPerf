@@ -34,7 +34,6 @@ if os.environ.get('COVERAGE_PROCESS_START'):
     import coverage
     coverage.process_startup()
 
-SUBMIT_URL="http://192.168.120.130:9987/api/trial/create"
 """
 /**
  * Generate command line to start automl algorithm(s),
@@ -76,7 +75,11 @@ def read_response(fio):
     header = fio.read(8)
     logger.info('Received response: [%s]', header)
     data = ""
-    length = int(header[2:])
+    try:
+        length = int(header[2:])
+    except:
+        logging.info("ERROR!")
+        logging.info(fio.read(30))
     data = fio.read(length)
     command = CommandType(header[:2])
     data = data.decode('utf8')
@@ -86,9 +89,10 @@ def read_response(fio):
 dispatch_pid = -1
 
 def term_sig_handler(signum, frame):
+    logger.info("AIPerf controller exiting")
     if(dispatch_pid!=-1):
         os.kill(dispatch_pid, signal.SIGKILL)
-    sleep(3)
+    sleep(1)
     logger.info("AIPerf controller exit!")
     sys.exit()
 
@@ -160,6 +164,11 @@ TRIALS_LIST = []
 
 def launch_experiment(args, experiment_config, mode, config_file_name, experiment_id=None):
     '''follow steps to start rest server and start experiment'''
+    headers = {'Content-Type': 'application/json;charset=UTF-8'}
+    SUBMIT_URL="{}/api/trial/create".format(args.server)
+    HEARTBEAT_URL = "{}/api/trial/heartbeat".format(args.server)
+    STOP_URL = "{}/api/trial/stop".format(args.server)
+    CLEAR_URL = "{}/api/trial/clear".format(args.server)
     signal.signal(signal.SIGTERM, term_sig_handler)
     signal.signal(signal.SIGINT, term_sig_handler)
     global dispatch_pid
@@ -203,6 +212,8 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
         str(len(str(trial_concurrency))) +
         str(trial_concurrency)
     )
+    requests.get(STOP_URL, headers=headers)
+    requests.get(CLEAR_URL, headers=headers)
 
     child_stdin.write(gen_cmd.encode())
     child_stdin.flush()
@@ -234,6 +245,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
             headers = headers,
             json=t.to_submit_data()
         )
+        requests.get(HEARTBEAT_URL, headers=headers)
 
     while True:
         logging.info("Current max trial id: {}".format(next_trial_seq_id-1))
@@ -241,8 +253,8 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
         for t in TRIALS_LIST:
             if t.status == "finish":
                 continue
-            QUERY_URL="http://192.168.120.130:9987/api/trial/query?"+t.trial_id
-            headers = {'Content-Type': 'application/json;charset=UTF-8'}
+            QUERY_URL="{}/api/trial/query?".format(args.server)+t.trial_id
+            
             data={"trial":t.trial_id}
             res = requests.post(
                 QUERY_URL,
@@ -282,6 +294,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
                     headers = headers,
                     json=t.to_submit_data()
                 )
+                requests.get(HEARTBEAT_URL, headers=headers)
 
         if next_trial_seq_id >= experiment_config["maxTrialNum"]:
             break
@@ -339,6 +352,7 @@ def parse_args():
     # parse start command
     parser_start = subparsers.add_parser('create', help='create a new experiment')
     parser_start.add_argument('--config', '-c', required=True, dest='config', help='the path of yaml config file')
+    parser_start.add_argument('--server', '-s', required=True, dest='server', help='control server, http://0.0.0.0:9987')
     parser_start.add_argument('--debug', '-d', action='store_true', help=' set debug mode')
     parser_start.set_defaults(func=create_experiment)
 

@@ -64,18 +64,10 @@ NNI_VERSION_TEMPLATE = 999.0.0-developing
 
 # Main targets
 
-.PHONY: build
-build:
-	#$(_INFO) Building NNI Manager $(_END)
-	cd src/nni_manager && $(NNI_YARN) && $(NNI_YARN) build
-	cp -rf src/nni_manager/config src/nni_manager/dist/
-
 # All-in-one target for non-expert users
 # Installs NNI as well as its dependencies, and update bashrc to set PATH
 .PHONY: easy-install
 easy-install: check-perm
-easy-install: install-dependencies
-easy-install: build
 easy-install: install
 easy-install: update-bash-config
 easy-install:
@@ -85,8 +77,6 @@ easy-install:
 # Install NNI as well as its dependencies, and update bashrc to set PATH
 .PHONY: dev-easy-install
 dev-easy-install: dev-check-perm
-dev-easy-install: install-dependencies
-dev-easy-install: build
 dev-easy-install: dev-install
 dev-easy-install: update-bash-config
 dev-easy-install:
@@ -96,7 +86,6 @@ dev-easy-install:
 # Must be invoked after building
 .PHONY: install
 install: install-python-modules
-install: install-node-modules
 install: install-scripts
 install:
 	#$(_INFO) Complete! You may want to add $(BIN_FOLDER) to your PATH environment $(_END)
@@ -105,7 +94,6 @@ install:
 # Creates symlinks instead of copying files
 .PHONY: dev-install
 dev-install: dev-install-python-modules
-dev-install: dev-install-node-modules
 dev-install: install-scripts
 dev-install:
 	#$(_INFO) Complete! You may want to add $(BIN_FOLDER) to your PATH environment $(_END)
@@ -140,22 +128,6 @@ $(NNI_YARN_TARBALL):
 	#$(_INFO) Downloading Yarn $(_END)
 	wget https://aka.ms/yarn-download -O $(NNI_YARN_TARBALL)
 
-.PHONY: install-dependencies
-install-dependencies: $(NNI_NODE_TARBALL) $(NNI_YARN_TARBALL)
-	#$(_INFO) Extracting Node.js $(_END)
-	rm -rf $(NNI_NODE_FOLDER)
-	mkdir $(NNI_NODE_FOLDER)
-	tar -xf $(NNI_NODE_TARBALL) -C $(NNI_NODE_FOLDER) --strip-components 1
-	mkdir -p $(BIN_FOLDER)
-	rm -f $(NNI_NODE) $(NNI_NPM)
-	ln -s $(NNI_NODE_FOLDER)/bin/node $(NNI_NODE)
-	ln -s $(NNI_NODE_FOLDER)/bin/npm $(NNI_NPM)
-	
-	#$(_INFO) Extracting Yarn $(_END)
-	rm -rf $(NNI_YARN_FOLDER)
-	mkdir $(NNI_YARN_FOLDER)
-	tar -xf $(NNI_YARN_TARBALL) -C $(NNI_YARN_FOLDER) --strip-components 1
-
 .PHONY: install-python-modules
 install-python-modules:
 	#$(_INFO) Installing Python SDK $(_END)
@@ -177,26 +149,6 @@ dev-install-python-modules:
 	sed -ie 's/src\/sdk\/pynni\/nni/nni/g' build/setup.py
 	sed -ie 's/tools\///g' build/setup.py
 	cd build && $(PIP_INSTALL) $(PIP_MODE) -e .
-
-
-.PHONY: install-node-modules
-install-node-modules:
-	#$(_INFO) Installing NNI Package $(_END)
-	rm -rf $(NNI_PKG_FOLDER)
-	cp -r src/nni_manager/dist $(NNI_PKG_FOLDER)
-	cp src/nni_manager/package.json $(NNI_PKG_FOLDER)
-	sed -ie 's/$(NNI_VERSION_TEMPLATE)/$(NNI_VERSION_VALUE)/' $(NNI_PKG_FOLDER)/package.json
-	$(NNI_YARN) --prod --cwd $(NNI_PKG_FOLDER)
-
-
-.PHONY: dev-install-node-modules
-dev-install-node-modules:
-	#$(_INFO) Installing NNI Package $(_END)
-	rm -rf $(NNI_PKG_FOLDER)
-	ln -sf ${PWD}/src/nni_manager/dist $(NNI_PKG_FOLDER)
-	cp src/nni_manager/package.json $(NNI_PKG_FOLDER)
-	sed -ie 's/$(NNI_VERSION_TEMPLATE)/$(NNI_VERSION_VALUE)/' $(NNI_PKG_FOLDER)/package.json
-	ln -sf ${PWD}/src/nni_manager/node_modules $(NNI_PKG_FOLDER)/node_modules
 
 .PHONY: install-scripts
 install-scripts:

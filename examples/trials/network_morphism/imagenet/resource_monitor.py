@@ -87,7 +87,7 @@ def record_device_info():
 if __name__ == "__main__":
     args = get_args()
     experiment_id = args.id
-    log_path = '/root/mountdir/device_info/' + experiment_id + '/' + os.environ['SLURMD_NODENAME']
+    log_path = '/home/wxp/mountdir/device_info/' + experiment_id + '/' + os.environ['SLURMD_NODENAME']
     if not os.path.isdir(log_path):
         os.makedirs(log_path)
     start_date = os.popen('date').readline().strip()

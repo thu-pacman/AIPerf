@@ -261,8 +261,6 @@ class NetworkMorphismTuner(Tuner):
 
     def init_search(self):
         """Call the generators to generate the initial architectures for the search."""
-        #if self.verbose:
-        #    logger.info("Initializing search.")
         import yaml
         trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
         if trial_concurrency > self.model_count: #判断当前训练的trial是否已超过第一轮trials
@@ -362,9 +360,7 @@ class NetworkMorphismTuner(Tuner):
         -------
         model : dict
         """
-        if self.verbose:
-            logger.info("Saving model.")
-
+        
         # Update best_model text file
         ret = {"model_id": model_id, "metric_value": metric_value}
         trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())

@@ -40,6 +40,8 @@ import utils
 import imagenet_preprocessing
 import dataset as ds
 
+print("gpu avail: ", tf.test.is_gpu_available())
+
 os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
 log_format = "%(asctime)s %(message)s"
@@ -301,7 +303,6 @@ def train_eval(esargs, RCV_CONFIG, seqid):
 
 
 if __name__ == "__main__":
-    print("start")
     example_start_time = time.time()
     net = None
     args = get_args()
