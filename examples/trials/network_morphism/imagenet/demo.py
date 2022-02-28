@@ -40,8 +40,10 @@ import utils
 import imagenet_preprocessing
 import dataset as ds
 
-os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
+
+os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '0'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+print("gpu avail: ", tf.test.is_gpu_available())
 
 log_format = "%(asctime)s %(message)s"
 logging.basicConfig(
@@ -107,16 +109,19 @@ def parse_rev_args(args):
     bs_explore = args.batch_size
     mirrored_strategy = tf.distribute.MirroredStrategy()
     with mirrored_strategy.scope():
+        print("build graph from json")
         net = build_graph_from_json()
-        optimizer = SGD(lr=args.initial_lr, momentum=0.9, decay=1e-4)
-        optimizer = tf.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale=256)
+        optimizer = SGD(learning_rate=args.initial_lr, momentum=0.9, decay=1e-4)
+        # optimizer = tf.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale=256)
         loss = tf.keras.losses.CategoricalCrossentropy(label_smoothing=args.smooth_factor)
 
         # Compile the model
+        print("compile the model")
         net.compile(
             # loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"]
             loss=loss, optimizer=optimizer, metrics=["accuracy"]
         )
+        print("finish compiling")
 
 
 # class SendMetrics(tf.keras.callbacks.Callback):
@@ -150,6 +155,7 @@ def parse_rev_args(args):
 def train_eval(args):
     """ train and eval the model
     """
+    print("start train exal")
     global net
     global best_acc
     global bs_explore
@@ -161,11 +167,13 @@ def train_eval(args):
     # train procedure
     available_devices = os.environ["CUDA_VISIBLE_DEVICES"]
     gpus = len(available_devices.split(","))
+    print("gpus:{}".format(gpus))
 
     is_training = True
     filenames = ds.get_filenames(args.train_data_dir)
     dataset = tf.data.Dataset.from_tensor_slices(filenames)
     dataset = dataset.flat_map(tf.data.TFRecordDataset)
+    print("P1 process_record_dataset")
     ds_train = ds.process_record_dataset(
         dataset=dataset,
         is_training=is_training,
@@ -178,11 +186,12 @@ def train_eval(args):
         examples_per_epoch=examples_per_epoch if is_training else None,
         dtype=tf.float32
     )
-
+    print("P1 over")
     is_training = False
     filenames = ds.get_filenames(args.val_data_dir)
     dataset = tf.data.Dataset.from_tensor_slices(filenames)
     dataset = dataset.flat_map(tf.data.TFRecordDataset)
+    print("P2 process_record_dataset")
     ds_val = ds.process_record_dataset(
         dataset=dataset,
         is_training=is_training,
@@ -195,8 +204,10 @@ def train_eval(args):
         examples_per_epoch=None,
         dtype=tf.float32
     )
+    print("P2 over")
 
     # run epochs and patience
+    seqid=0
     loopnum = seqid // args.slave
     patience = min(int(6 + (2 * loopnum)), 20)
     if loopnum == 0:
@@ -239,13 +250,20 @@ def train_eval(args):
     #     save_freq='epoch',
     #     save_weights_only=True,
     # )
-    x_train = np.random.rand(10000,224,224,3)
-    y_train = 0 * np.random.rand(10000,1000)
-    x_test = np.random.rand(1000,224,224,3)
-    y_test = 0 * np.random.rand(1000,1000)
-
-    history = net.fit(x_train, y_train, batch_size=448, epochs=10, validation_data=(x_test, y_test), shuffle=True)
-
+    """
+    print("x_train gen...")
+    x_train = np.random.rand(1024,224,224,3)
+    print("y_train gen...")
+    y_train = 0 * np.random.rand(1024,1000)
+    print("x_test gen...")
+    x_test = np.random.rand(128,224,224,3)
+    print("x_test gen...")
+    y_test = 0 * np.random.rand(128,1000)
+    print("P3 net.fit")
+    history = net.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_test, y_test), shuffle=True)
+    print("P3 over")
+    """
+    print("P4 net.fit")
     history = net.fit(
         ds_train,
         epochs=args.epochs,
@@ -259,7 +277,7 @@ def train_eval(args):
                    #EarlyStopping(min_delta=0.001, patience=patience),
                    #model_checkpoint_callback
                    ])
-
+    print("P4 over")
 
 if __name__ == "__main__":
     example_start_time = time.time()
@@ -268,7 +286,7 @@ if __name__ == "__main__":
 
     train_eval(args)
     
-
+"""
 from PIL import Image
 
 count = 0
@@ -284,3 +302,4 @@ for filenames in os.listdir(dirpath):
         x_train[count] = img_PIL
         count += 1
 
+"""
