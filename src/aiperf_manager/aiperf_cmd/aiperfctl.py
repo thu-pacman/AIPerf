@@ -198,6 +198,9 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     os.mkdir(NNI_TRIALS_DIR)
     os.mkdir(NNI_CKPT_DIR)
 
+    NNI_WORK_DIR = os.environ["HOME"]+"/mountdir/nni/experiments/"+NNI_EXP_ID
+    os.mkdir(NNI_WORK_DIR)
+
     logger.info("NNI_EXP_ID: {}".format(NNI_EXP_ID))
 
     # 1. START DISPATCHER
