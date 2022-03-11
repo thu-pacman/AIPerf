@@ -1,69 +1,39 @@
-# Copyright (c) Microsoft Corporation
-# Copyright (c) Peng Cheng Laboratory
-# All rights reserved.
-#
-# MIT License
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-# to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-# -*-coding:utf-8-*-
-
 import argparse
 import logging
 import os
-import json
 import time
 import zmq
 import random
-import numpy as np
-import multiprocessing
-
-import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.optimizers import SGD
-
+import json
+import sys
 import nni
-from nni.networkmorphism_tuner.graph import json_to_graph
 import nni.hyperopt_tuner.hyperopt_tuner as TPEtuner
+import multiprocessing
+from multiprocessing import Process, Queue, RLock
 
+import mindspore.nn as nn
+import mindspore.common.initializer as weight_init
+from mindspore import context as mds_context
+from mindspore import Tensor
+from mindspore.parallel._auto_parallel_context import auto_parallel_context
+from mindspore.nn.optim.momentum import Momentum
+from mindspore.train.model import Model, ParallelMode
+from mindspore.train.callback import Callback, LossMonitor, TimeMonitor
+from mindspore.train.loss_scale_manager import FixedLossScaleManager
+from mindspore.communication.management import init
+from mindspore.common import set_seed
 import utils
-import imagenet_preprocessing
-import dataset as ds
-
-
-os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '0'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-print("gpu avail: ", tf.test.is_gpu_available())
-
-log_format = "%(asctime)s %(message)s"
-logging.basicConfig(
-    filename="networkmorphism.log",
-    filemode="a",
-    level=logging.INFO,
-    format=log_format,
-    datefmt="%m/%d %I:%M:%S %p",
-)
-logger = logging.getLogger("Imagenet-network-morphism-tfkeras")
-
-config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
+from dataset import create_dataset2 as create_dataset
+from CrossEntropySmooth import CrossEntropySmooth
+from lr_generator import get_lr, warmup_cosine_annealing_lr
+from metric import DistAccuracy, ClassifyCorrectCell
 
 # imagenet2012
 Ntrain = 1281167
 Nvalidation = 50000
 shuffle_buffer = 1024
 examples_per_epoch = shuffle_buffer
-tf.config.optimizer.set_jit(True)
+
 
 def get_args():
     """ get args from command line
@@ -89,217 +59,190 @@ def get_args():
 def build_graph_from_json():
     """build model from json representation
     """
-    f = open('resnet50.json', 'r')
+    from networkmorphism_tuner.graph import json_to_graph
+    from networkmorphism_tuner.ProcessJson import ModifyJson
+    f = open('/home/ma-user/aiperf/code/AIPerfAtlas/examples/trials/network_morphism/imagenet/resnet50.json', 'r')
     a = json.load(f)
     RCV_CONFIG = json.dumps(a)
     f.close()
     graph = json_to_graph(RCV_CONFIG)
-    model = graph.produce_tf_model()
+    model = graph.produce_MindSpore_model()
     return model
 
+class Accuracy(Callback):
+    def __init__(self, model, dataset_val, device_id, epoch_size, data_size, ms_lock):
+        super(Accuracy, self).__init__()
+        self.model = model
+        self.dataset_val = dataset_val
+        self.device_id = device_id
+        self.epoch_size = epoch_size
+        self.data_size = data_size
+        self.ms_lock = ms_lock
 
-def parse_rev_args(args):
-    """ parse reveive msgs to global variable
-    """
-    global net
-    global bs_explore
-    global gpus
-    # Model
+    def epoch_begin(self, run_context):
+        self.epoch_time = time.time()
 
-    bs_explore = args.batch_size
-    mirrored_strategy = tf.distribute.MirroredStrategy()
-    with mirrored_strategy.scope():
-        print("build graph from json")
-        net = build_graph_from_json()
-        optimizer = SGD(learning_rate=args.initial_lr, momentum=0.9, decay=1e-4)
-        # optimizer = tf.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale=256)
-        loss = tf.keras.losses.CategoricalCrossentropy(label_smoothing=args.smooth_factor)
+    def epoch_end(self, run_context):
+        cb_params = run_context.original_args()
+        epoch_num = cb_params.cur_epoch_num
+        loss = cb_params.net_outputs
+        epoch_mseconds = (time.time() - self.epoch_time) * 1000
+        per_step_mseconds = epoch_mseconds / self.data_size
 
-        # Compile the model
-        print("compile the model")
-        net.compile(
-            # loss="categorical_crossentropy", optimizer=optimizer, metrics=["accuracy"]
-            loss=loss, optimizer=optimizer, metrics=["accuracy"]
-        )
-        print("finish compiling")
+        self.ms_lock.acquire()
+        print("[Device {}] Epoch {}/{}, train time: {:5.3f}, per step time: {:5.3f}, loss: {}".format(
+            self.device_id, epoch_num, self.epoch_size, epoch_mseconds, per_step_mseconds, loss), flush=True)
+        self.ms_lock.release()
 
+        cur_time = time.time()
+        acc = self.model.eval(self.dataset_val)['acc']
+        val_time = int(time.time() - cur_time)
 
-# class SendMetrics(tf.keras.callbacks.Callback):
-#     """
-#     Keras callback to send metrics to NNI framework
-#     """
-
-#     def __init__(self, hp_path):
-#         super(SendMetrics, self).__init__()
-#         self.hp_path = hp_path
-#         self.best_acc = 0
-
-#     def on_epoch_end(self, epoch, logs=None):
-#         """
-#         Run on end of each epoch
-#         """
-#         if logs is None:
-#             logs = dict()
-#         logger.debug(logs)
-#         with open(self.hp_path, 'r') as f:
-#             hp = json.load(f)
-#         hp['epoch'] = epoch + 1
-#         if logs['val_accuracy'] > self.best_acc:
-#             self.best_acc = logs['val_accuracy']
-#             hp['single_acc'] = logs['val_accuracy']
-#         hp['finish_date'] = time.strftime('%m/%d/%Y, %H:%M:%S', time.localtime(time.time()))
-#         with open(self.hp_path, 'w') as f:
-#             json.dump(hp, f)
+        self.ms_lock.acquire()
+        print("[Device {}] Epoch {}/{}, EvalAcc:{}, EvalTime {}s".format(
+                self.device_id, epoch_num, self.epoch_size, acc, val_time), flush=True)
+        self.ms_lock.release()
 
 
-def train_eval(args):
-    """ train and eval the model
-    """
-    print("start train exal")
-    global net
-    global best_acc
-    global bs_explore
-    global gpus
-    global hp_path
+def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size, hp_path, device_id, device_num, enable_hccl, ms_lock, current_hyperparameter):
+    '''
+    net:
+    dataset_path_train:
+    dataset_path_val:
+    epoch_size:
+    batch_size:
+    hp_path:
 
-    best_acc = 0
-    parse_rev_args(args)
-    # train procedure
-    available_devices = os.environ["CUDA_VISIBLE_DEVICES"]
-    gpus = len(available_devices.split(","))
-    print("gpus:{}".format(gpus))
-
-    is_training = True
-    filenames = ds.get_filenames(args.train_data_dir)
-    dataset = tf.data.Dataset.from_tensor_slices(filenames)
-    dataset = dataset.flat_map(tf.data.TFRecordDataset)
-    print("P1 process_record_dataset")
-    ds_train = ds.process_record_dataset(
-        dataset=dataset,
-        is_training=is_training,
-        batch_size=bs_explore,
-        shuffle_buffer=shuffle_buffer,
-        parse_record_fn=ds.parse_record,
-        num_epochs=args.epochs,
-        npc=args.num_parallel_calls,
-        num_gpus=gpus,
-        examples_per_epoch=examples_per_epoch if is_training else None,
-        dtype=tf.float32
+    '''
+    set_seed(1)
+    print('''
+    dataset_path_train:{}
+    dataset_path_val:{}
+    epoch_size:{}
+    batch_size:{}
+    hp_path:{}
+    device_id:{}
+    device_num:{}
+    enable_hccl:{}
+    '''.format(dataset_path_train, dataset_path_val, epoch_size, batch_size, hp_path, device_id, device_num, enable_hccl)
     )
-    print("P1 over")
-    is_training = False
-    filenames = ds.get_filenames(args.val_data_dir)
-    dataset = tf.data.Dataset.from_tensor_slices(filenames)
-    dataset = dataset.flat_map(tf.data.TFRecordDataset)
-    print("P2 process_record_dataset")
-    ds_val = ds.process_record_dataset(
-        dataset=dataset,
-        is_training=is_training,
-        batch_size=bs_explore,
-        shuffle_buffer=shuffle_buffer,
-        parse_record_fn=ds.parse_record,
-        num_epochs=args.epochs,
-        npc=args.num_parallel_calls,
-        num_gpus=gpus,
-        examples_per_epoch=None,
-        dtype=tf.float32
-    )
-    print("P2 over")
+    target = 'Ascend'
 
-    # run epochs and patience
-    seqid=0
-    loopnum = seqid // args.slave
-    patience = min(int(6 + (2 * loopnum)), 20)
-    if loopnum == 0:
-        run_epochs = int(args.warmup_1)
-    elif loopnum == 1:
-        run_epochs = int(args.warmup_2)
-    elif loopnum == 2:
-        run_epochs = int(args.warmup_3)
-    else:
-        run_epochs = int(args.epochs)
-    
-    # if loopnum < 4:
-    #     patience = int(8 + (2 * loopnum))
-    #     run_epochs = int(10 + (20 * loopnum))
-    # else:
-    #     patience = 16
-    #     run_epochs = args.epochs
+    import socket as sck
+    kernel_meta_file = sck.gethostname() + '_' + str(device_id)
+    if os.path.exists(kernel_meta_file):
+        os.system("rm -rf " + str(kernel_meta_file))
+    os.system("mkdir " + str(kernel_meta_file))
+    os.chdir(str(kernel_meta_file))
+    ms_lock.acquire()
+    print('++++  container: {}'.format(sck.gethostname()))
+    ms_lock.release()
+    # init context
+    mds_context.set_context(mode=mds_context.GRAPH_MODE, device_target=target, save_graphs=False)
+    mds_context.set_context(device_id=device_id)
+    mds_context.set_context(max_call_depth=2000)
 
-    # lr strategy
+    #os.environ['RANK_TABLE'] = "/home/ma-user/rank_table_1pc.json"
+    #os.environ['RANK_TABLE_FILE'] = os.environ['RANK_TABLE']
+    os.environ['RANK_ID'] = str(device_id)
+    os.environ['RANK_SIZE'] = str(device_num)
+    os.environ['DEVICE_ID'] = str(device_id)
+    os.environ['DEVICE_NUM'] = str(device_num)
 
-    def scheduler2(epoch):
-        lr_max = args.initial_lr
-        total_epochs = args.epochs
-        lr_each_epoch = lr_max - lr_max * epoch / total_epochs
-        return lr_each_epoch
+    if enable_hccl:
+        mds_context.set_context(device_id=device_id, enable_auto_mixed_precision=True)
+        mds_context.set_auto_parallel_context(device_num=device_num, parallel_mode=ParallelMode.DATA_PARALLEL, gradients_mean=True)
+        auto_parallel_context().set_all_reduce_fusion_split_indices([85, 160])
+        init()
 
-    callback = tf.keras.callbacks.LearningRateScheduler(scheduler2)
+    eval_batch_size = 32
+    # create dataset
+    dataset_train = create_dataset(dataset_path=dataset_path_train, do_train=True, repeat_num=1, batch_size=batch_size, target=target)
+    step_size = dataset_train.get_dataset_size()
+    dataset_val = create_dataset(dataset_path=dataset_path_val, do_train=False, repeat_num=1, batch_size=eval_batch_size, target=target)
 
-    # save weights
-    # checkpoint_dir = os.environ["HOME"] + "/nni/experiments/" + str(nni.get_experiment_id()) + "/checkpoint/" + str(
-    #     nni.get_trial_id())
-    # if not os.path.exists(checkpoint_dir):
-    #     os.makedirs(checkpoint_dir)
-    # checkpoint_filepath = checkpoint_dir + "/weights." + "epoch." + str(run_epochs) + ".hdf5"
-    # model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    #     filepath=checkpoint_filepath,
-    #     monitor='val_accuracy',
-    #     mode='max',
-    #     save_best_only=True,
-    #     save_freq='epoch',
-    #     save_weights_only=True,
-    # )
-    """
-    print("x_train gen...")
-    x_train = np.random.rand(1024,224,224,3)
-    print("y_train gen...")
-    y_train = 0 * np.random.rand(1024,1000)
-    print("x_test gen...")
-    x_test = np.random.rand(128,224,224,3)
-    print("x_test gen...")
-    y_test = 0 * np.random.rand(128,1000)
-    print("P3 net.fit")
-    history = net.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_test, y_test), shuffle=True)
-    print("P3 over")
-    """
-    print("P4 net.fit")
-    history = net.fit(
-        ds_train,
-        epochs=args.epochs,
-        steps_per_epoch=Ntrain // bs_explore // gpus,
-        validation_data=ds_val,
-        validation_steps=Nvalidation // bs_explore // gpus,
-        verbose=1,
-        shuffle=False,
-        callbacks=[#SendMetrics(hp_path),
-                   callback,
-                   #EarlyStopping(min_delta=0.001, patience=patience),
-                   #model_checkpoint_callback
-                   ])
-    print("P4 over")
+    # build network
+    net = build_graph_from_json()
+
+    # evaluation network
+    dist_eval_network = ClassifyCorrectCell(net)
+
+    # init weight
+    for _, cell in net.cells_and_names():
+        if isinstance(cell, nn.Conv2d):
+            cell.weight.set_data(weight_init.initializer(weight_init.XavierUniform(),
+                                                        cell.weight.shape,
+                                                        cell.weight.dtype))
+        if isinstance(cell, nn.Dense):
+            cell.weight.set_data(weight_init.initializer(weight_init.TruncatedNormal(),
+                                                        cell.weight.shape,
+                                                        cell.weight.dtype))
+
+    # init lr
+    lr = get_lr(lr_init=0.0, lr_end=0.0, lr_max=0.8, warmup_epochs=0,
+                total_epochs=epoch_size, steps_per_epoch=step_size, lr_decay_mode='linear')
+    lr = Tensor(lr)
+
+    # define opt
+    decayed_params = []
+    no_decayed_params = []
+    for param in net.trainable_params():
+        if 'beta' not in param.name and 'gamma' not in param.name and 'bias' not in param.name:
+            decayed_params.append(param)
+        else:
+            no_decayed_params.append(param)
+
+    group_params = [{'params': decayed_params, 'weight_decay': 1e-4},
+                    {'params': no_decayed_params},
+                    {'order_params': net.trainable_params()}]
+    opt = Momentum(group_params, lr, 0.9, loss_scale=1024)
+
+    # define loss, model
+    loss = CrossEntropySmooth(sparse=True, reduction="mean",
+                              smooth_factor=0.1, num_classes=1001)
+    loss_scale = FixedLossScaleManager(loss_scale=1024, drop_overflow_update=False)
+
+    model = Model(net, loss_fn=loss, optimizer=opt, loss_scale_manager=loss_scale, amp_level="O2", keep_batchnorm_fp32=False,
+                  metrics={'acc': DistAccuracy(batch_size=eval_batch_size, device_num=device_num)},
+                  eval_network=dist_eval_network)
+
+    # define callbacks
+    acc_cb = Accuracy(model, dataset_val, device_id, epoch_size, step_size, ms_lock)
+    cb = [acc_cb]
+
+     # train model
+    model._init(dataset_train, dataset_val)
+    start_date = time.strftime('%m/%d/%Y, %H:%M:%S', time.localtime(time.time()))
+
+    ms_lock.acquire()
+    with open(hp_path, 'w') as f:
+        json.dump({'hyperparameter': current_hyperparameter, 
+                   'epoch': 0, 
+                   'single_acc': 0,
+                   'train_time': 0, 
+                   'start_date': start_date}, f)
+    ms_lock.release()
+    model.train(epoch_size, dataset_train, callbacks=cb, dataset_sink_mode=True)
+
+    # evaluation model
+    acc = model.eval(dataset_val)['acc']
+    print("acc: {}".format(acc))
 
 if __name__ == "__main__":
     example_start_time = time.time()
     net = None
     args = get_args()
-
-    train_eval(args)
-    
-"""
-from PIL import Image
-
-count = 0
-x_train = np.zeros([5000, 224, 224, 3], dtype='float32')
-y_train = np.ones([5000, 1000], dtype='float32')
-dirpath = '/root/'
-for filenames in os.listdir(dirpath):
-    if count < 5000:
-        filepath = os.path.join(dirpath, filenames)
-        img_PIL = Image.open(filepath)
-        img_PIL = np.array(img_PIL)
-        img_PIL = img_PIL.resize((224, 224)) 
-        x_train[count] = img_PIL
-        count += 1
-
-"""
+    init_search_space_point = {"dropout_rate": 0.0, "kernel_size": 3, "batch_size": args.batch_size}
+    ms_lock = RLock()
+    mds_train_eval(
+        args.train_data_dir,
+        args.val_data_dir,
+        args.epochs,
+        args.batch_size,
+        "./hp_demo.json",
+        0,
+        1,
+        True,
+        ms_lock,
+        init_search_space_point
+    )

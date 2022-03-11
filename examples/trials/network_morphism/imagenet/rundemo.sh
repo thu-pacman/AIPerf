@@ -1,1 +1,1 @@
-python3 demo.py  --slave 1   --ip 172.23.33.30  --batch_size 48  --warmup_1 2 --warmup_2 3 --warmup_3 4 --epoch 10  --initial_lr 1e-1  --final_lr 0  --num_parallel_calls 10  --train_data_dir /mnt/zoltan/public/dataset/final/train/  --val_data_dir /mnt/zoltan/public/dataset/final/val/ 
+python3 demo.py  --slave 1   --ip 127.0.0.1  --batch_size 48  --warmup_1 2 --warmup_2 3 --warmup_3 4 --epoch 10  --initial_lr 1e-1  --final_lr 0  --num_parallel_calls 10  --train_data_dir /home/ma-user/train/  --val_data_dir /home/ma-user/val/
