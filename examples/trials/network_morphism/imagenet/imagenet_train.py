@@ -188,7 +188,7 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
     mds_context.set_context(device_id=device_id)
     mds_context.set_context(max_call_depth=2000)
 
-    os.environ['RANK_TABLE_FILE'] = os.environ['RANK_TABLE']
+    #os.environ['RANK_TABLE_FILE'] = os.environ['RANK_TABLE']
     os.environ['RANK_ID'] = str(device_id)
     os.environ['RANK_SIZE'] = str(device_num)
     os.environ['DEVICE_ID'] = str(device_id)
@@ -332,24 +332,27 @@ def train_eval_distribute(hyper_params, receive_config, trial_id, hp_path, curre
     acc = acc / device_num
 
    # 获取每一个 train 的起始终止位置（一个 trial.log 可能包含两次 train 过程）
+    best_acc = 0
+    """
     lines = []
-    with open('/root/nni/experiments/{}/trials/{}/trial.log'.format(nni.get_experiment_id(), nni.get_trial_id()), 'r') as f:
+    with open(os.environ["HOME"] +'/nni/experiments/{}/trials/{}/trial.log'.format(nni.get_experiment_id(), nni.get_trial_id()), 'r') as f:
         for index, line in enumerate(f.readlines()):
             lines.append(line)
-
+    
     from utils import get_one_train_info, predict_acc
-    best_acc = 0
+    
     acc_list = get_one_train_info(lines, 0, -1)['eval_acc']
     try:
-        if run_epochs >= 10 and run_epochs < 80:
+        if run_epochs >= 1 and run_epochs < 80:
             epoch_x = range(1, len(acc_list) + 1)
             pacc = predict_acc('', epoch_x, acc_list, 90, False)
             best_acc = float(pacc)
     except Exception as E:
         print("Predict failed.")
+    """
     if acc > best_acc:
         best_acc = acc
-
+    
     print("End training...")
     write_result_to_json(hp_path, epoch_size, best_acc)
     logger.debug("Final result is: %.3f", best_acc)

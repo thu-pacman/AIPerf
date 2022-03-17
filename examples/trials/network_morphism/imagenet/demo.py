@@ -61,12 +61,16 @@ def build_graph_from_json():
     """
     from networkmorphism_tuner.graph import json_to_graph
     from networkmorphism_tuner.ProcessJson import ModifyJson
-    f = open('/home/ma-user/aiperf/code/AIPerfAtlas/examples/trials/network_morphism/imagenet/resnet50.json', 'r')
+    f = open('/home/ma-user/modelarts/user-job-dir/code/AIPerf/AIPerf/examples/trials/network_morphism/imagenet/resnet50.json', 'r')
     a = json.load(f)
     RCV_CONFIG = json.dumps(a)
     f.close()
     graph = json_to_graph(RCV_CONFIG)
     model = graph.produce_MindSpore_model()
+    print("json to graph success!")
+    from mindspore.train.serialization import load_checkpoint, load_param_into_net
+    print("load ckpt")
+    print("load success!")
     return model
 
 class Accuracy(Callback):
@@ -141,6 +145,7 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
     mds_context.set_context(mode=mds_context.GRAPH_MODE, device_target=target, save_graphs=False)
     mds_context.set_context(device_id=device_id)
     mds_context.set_context(max_call_depth=2000)
+    
 
     #os.environ['RANK_TABLE'] = "/home/ma-user/rank_table_1pc.json"
     #os.environ['RANK_TABLE_FILE'] = os.environ['RANK_TABLE']
@@ -154,7 +159,7 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
         mds_context.set_auto_parallel_context(device_num=device_num, parallel_mode=ParallelMode.DATA_PARALLEL, gradients_mean=True)
         auto_parallel_context().set_all_reduce_fusion_split_indices([85, 160])
         init()
-
+    
     eval_batch_size = 32
     # create dataset
     dataset_train = create_dataset(dataset_path=dataset_path_train, do_train=True, repeat_num=1, batch_size=batch_size, target=target)
@@ -211,6 +216,7 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
     cb = [acc_cb]
 
      # train model
+    print("model._init")
     model._init(dataset_train, dataset_val)
     start_date = time.strftime('%m/%d/%Y, %H:%M:%S', time.localtime(time.time()))
 
@@ -222,6 +228,7 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
                    'train_time': 0, 
                    'start_date': start_date}, f)
     ms_lock.release()
+    print("model.train")
     model.train(epoch_size, dataset_train, callbacks=cb, dataset_sink_mode=True)
 
     # evaluation model

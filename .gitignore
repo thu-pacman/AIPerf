@@ -7,3 +7,9 @@ src/nni_manager/dist/
 
 **/__pycache__/
 **/build/
+
+*.egg-info
+*.ipynb_checkpoints
+**/model_path
+dispatcher.log
+*.ipynb

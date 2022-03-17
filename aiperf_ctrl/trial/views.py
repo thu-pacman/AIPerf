@@ -143,24 +143,33 @@ def sshKill():
     for server in SERVER_LIST:
         #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} cp /mnt/zoltan/public/dataset/imagenet/aiperf_ctrl/kill.sh /root".format(server["ip"]))
         #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /root; bash kill.sh &'".format(server["ip"]))
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 wxp@{} cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/kill.sh /home/wxp".format(server["ip"]))
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 wxp@{} 'cd /home/wxp; bash kill.sh &'".format(server["ip"]))
+        os.system("bash /home/ma-user/work/AIPerf/aiperf_ctrl/kill.sh &")
     return
     
 
 def sshExec(server, trial):
     global SERVER_LIST, TRIAL_LIST
+    """
     bashCmd = (
         "#!/bin/bash -l\nsource /usr/local/Modules/init/bash\n"+ 
         "module load cuda-10.0/cuda cuda-10.0/cudnn-7.4.2\n"+
         "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/wxp\n"
     )
+    """
+    bashCmd = (
+        "#!/usr/bin/bash -l\nsource /home/ma-user/miniconda3/bin/activate MindSpore-python3.7-aarch64\n" +
+        "export no_proxy=${no_proxy}:127.0.0.1\n" + 
+        "export NO_PROXY=${NO_PROXY}:127.0.0.1\n" +
+        "export MINDSPORE_HCCL_CONFIG_PATH=/home/ma-user/work/hccl.json\n"+
+        "export NPU_NUM=1\n"+
+        "unset RANK_TABLE\nunset RANK_TABLE_FILE\n"
+    )
 
-    bashCmd += "cd '/mnt/zoltan/public/dataset/imagenet/AIPerf/examples/trials/network_morphism/imagenet/.'\n"
+    bashCmd += "cd '/home/ma-user/work/AIPerf/examples/trials/network_morphism/imagenet/.'\n"
     for k in trial["env"]:
         v = trial["env"][k]
         if k=="CUDA_VISIBLE_DEVICES":
-            v = server["CUDA_VISIBLE_DEVICES"]
+            continue
         bashCmd += "export {}='{}'\n".format(
             k,
             v
@@ -174,7 +183,7 @@ def sshExec(server, trial):
         )
     
     bashCmd += (
-        "/usr/bin/curl --location --request POST 'http://172.23.33.30:9987/api/trial/finish' " +
+        "no_proxy=${no_proxy}:127.0.0.1 NO_PROXY=${NO_PROXY}:127.0.0.1 HTTP_PROXY='' HTTPS_PROXY='' /usr/bin/curl --noproxy 127.0.0.1 --location --request POST 'http://127.0.0.1:9987/api/trial/finish' " +
         "--header 'Content-Type: application/json' --data '{\"trial\":\""
         +trial["env"]["NNI_TRIAL_JOB_ID"] +"\"}'"
     )
@@ -184,11 +193,10 @@ def sshExec(server, trial):
     #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /imagenet/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(server["ip"], trial["env"]["NNI_EXP_ID"]) )
     #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} cp /imagenet/aiperf_ctrl/tmp.sh /root".format(server["ip"]))
     #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /root; bash tmp.sh >stdout.log 2>stderr.log &'".format(server["ip"]))
-    os.system("ssh -o ConnectTimeout=10 wxp@{} 'cd /mnt/zoltan/public/dataset/imagenet/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(server["ip"], trial["env"]["NNI_EXP_ID"]) )
-    os.system("ssh -o ConnectTimeout=10 wxp@{} 'mkdir /home/wxp/aiperflog/{} ; cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/tmp.sh /home/wxp/aiperflog/{}'".format(
-        server["ip"], 
+    os.system("cd /home/ma-user/work/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &".format(trial["env"]["NNI_EXP_ID"]) )
+    os.system("mkdir /home/ma-user/aiperflog/{} ; cp /home/ma-user/work/AIPerf/aiperf_ctrl/tmp.sh /home/ma-user/aiperflog/{}".format(
         trial["env"]["NNI_TRIAL_JOB_ID"],
         trial["env"]["NNI_TRIAL_JOB_ID"]
     ))
-    os.system("ssh -o ConnectTimeout=10 wxp@{} 'cd /home/wxp/aiperflog/{}; source tmp.sh >stdout.log 2>stderr.log &'".format(server["ip"], trial["env"]["NNI_TRIAL_JOB_ID"]))
+    os.system("source /home/ma-user/aiperflog/{}/tmp.sh >/home/ma-user/aiperflog/{}/stdout.log 2>/home/ma-user/aiperflog/{}/stderr.log &".format(trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"]))
     return

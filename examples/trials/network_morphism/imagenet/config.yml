@@ -24,16 +24,15 @@ tuner:
     #number of classes
     n_output_node: 1000
 trial:
-    command: NPU_NUM=8 \
-             srun -N 1 -n 1 --ntasks-per-node=1 --cpus-per-task=191 \
+    command: NPU_NUM=1 \
              python3 imagenet_train.py \
              --slave 1 \
-             --ip 172.17.0.2 \
+             --ip 127.0.0.1 \
              --batch_size 256 \
-             --train_data_dir /home/data/train/ \
-             --val_data_dir /home/data/val/ \
+             --train_data_dir /home/ma-user/work/train/ \
+             --val_data_dir /home/ma-user/work/val/ \
              --epochs 60 \
-             --warmup_1 15 \   
+             --warmup_1 2 \   
              --warmup_2 30 \   
              --warmup_3 45
              

@@ -16,9 +16,6 @@ setuptools.setup(
     install_requires = [
         'hyperopt==0.1.2',
         'json_tricks',
-        'numpy',
-        'scipy',
-        'coverage'
     ],
     package_data = {'nni': ['**/requirements.txt']},
 

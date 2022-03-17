@@ -1,6 +1,6 @@
 [
     {
-        "ip": "172.23.33.33",
+        "ip": "127.0.0.1",
         "tag": "",
         "status": "waiting",
         "CUDA_VISIBLE_DEVICES": "0"

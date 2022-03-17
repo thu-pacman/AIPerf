@@ -106,7 +106,7 @@ def term_sig_handler(signum, frame):
 
 def start_dispatcher(experiment_config):
     global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
-    msg_dispatcher_command = "/usr/bin/python3 -m nni --exp_params {}".format(
+    msg_dispatcher_command = "/home/ma-user/miniconda3/envs/MindSpore-python3.7-aarch64/bin/python3 -m nni --exp_params {}".format(
         base64.b64encode(json.dumps(experiment_config).encode()).decode()
     )
     # print(msg_dispatcher_command)
@@ -254,7 +254,8 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
             json=t.to_submit_data()
         )
         requests.get(HEARTBEAT_URL, headers=headers)
-
+    
+    logger.setLevel(logging.WARNING)
     while True:
         logging.info("Current max trial id: {}".format(next_trial_seq_id-1))
 
