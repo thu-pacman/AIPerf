@@ -143,10 +143,10 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
     )
     
 
-    #os.environ['RANK_ID'] = str(device_id)
-    #os.environ['RANK_SIZE'] = str(device_num)
-    #os.environ['DEVICE_ID'] = str(device_id)
-    #os.environ['DEVICE_NUM'] = str(device_num)
+    os.environ['RANK_ID'] = str(device_id)
+    os.environ['RANK_SIZE'] = str(device_num)
+    os.environ['DEVICE_ID'] = str(device_id)
+    os.environ['DEVICE_NUM'] = str(device_num)
 
     # if enable_hccl:
         # mds_context.set_context(device_id=device_id, enable_auto_mixed_precision=True)
@@ -238,13 +238,25 @@ if __name__ == "__main__":
     ms_lock = RLock()
     device_num = int(os.environ["NPU_NUM"])
     device_id = int(os.environ["DEVICE_ID"])
-    mds_train_eval(args.train_data_dir,
-                                    args.val_data_dir,
-                                    args.epochs,
-                                    args.batch_size,
-                                    "./hp_demo.json",
-                                    device_id,
-                                    device_num,
-                                    True,
-                                    ms_lock,
-                                    init_search_space_point)
+    process = []
+    for i in range(device_num):
+        device_id = i
+        process.append(
+            Process(
+                target=mds_train_eval,
+                args=(
+                    args.train_data_dir,                
+                    args.val_data_dir,
+                    args.epochs,
+                    args.batch_size,
+                    "./hp_demo.json",
+                    device_id,
+                    device_num,
+                    True,
+                    ms_lock,
+                    init_search_space_point
+                )
+            )
+        )
+
+    mds_train_eval()
