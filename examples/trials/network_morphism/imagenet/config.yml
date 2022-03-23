@@ -25,7 +25,7 @@ tuner:
     n_output_node: 1000
 trial:
     command: NPU_NUM=8 \
-             OBSHOME=obs://aiperf/aiperf/runlog \
+             OBSHOME=obs://debug/aiperf/runlog \
              python3 imagenet_train.py \
              --slave 8 \
              --ip 127.0.0.1 \

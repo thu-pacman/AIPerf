@@ -202,7 +202,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     )
 
     NNI_EXP_ID = "".join(random.sample(string.ascii_letters + string.digits, 8))
-    NNI_EXP_DIR = "obs://aiperf/aiperf/runlog/nni/experiments/"+NNI_EXP_ID
+    NNI_EXP_DIR = "obs://debug/aiperf/runlog/nni/experiments/"+NNI_EXP_ID
     NNI_EXP_LOG_DIR = NNI_EXP_DIR + "/log"
     NNI_TRIALS_DIR = NNI_EXP_DIR + "/trials"
     NNI_CKPT_DIR = NNI_EXP_DIR + "/checkpoint"

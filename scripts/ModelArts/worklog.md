@@ -265,7 +265,7 @@ cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morp
 
             {
                 "type":"eval",
-                "cmd":"print(mox.file.list_directory('obs://aiperf/aiperf/code/AIPerf/aiperf_ctrl/'))"
+                "cmd":"print(mox.file.list_directory('obs://debug/aiperf/code/AIPerf/aiperf_ctrl/'))"
             },
             {
                 "type":"eval",
@@ -275,7 +275,7 @@ cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morp
 
             {
                 "type":"eval",
-                "cmd":"mox.file.copy('obs://aiperf/aiperf/code/AIPerf/aiperf_ctrl/servers.json','/home/ma-user/modelarts/user-job-dir/code/AIPerf/aiperf_ctrl/servers.json')"
+                "cmd":"mox.file.copy('obs://debug/aiperf/code/AIPerf/aiperf_ctrl/servers.json','/home/ma-user/modelarts/user-job-dir/code/AIPerf/aiperf_ctrl/servers.json')"
             },
             {
                 "type":"bash",
@@ -284,7 +284,7 @@ cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morp
 
             {
                 "type":"eval",
-                "cmd":"mox.file.copy('obs://aiperf/aiperf/code/AIPerf/aiperf_ctrl/trial/views.py','/home/ma-user/modelarts/user-job-dir/code/AIPerf/aiperf_ctrl/trial/views.py')"
+                "cmd":"mox.file.copy('obs://debug/aiperf/code/AIPerf/aiperf_ctrl/trial/views.py','/home/ma-user/modelarts/user-job-dir/code/AIPerf/aiperf_ctrl/trial/views.py')"
             },
             {
                 "type":"bash",
@@ -303,22 +303,22 @@ cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morp
             // 启动AIPerf
             {
                 "type":"bash",
-                "cmd":"cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/ && LD_PRELOAD=/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1  TF_CPP_MIN_LOG_LEVEL=3 OBSHOME=obs://aiperf/aiperf/runlog aiperf create -c config.yml --server http://172.16.0.144:9987 > /tmp/aiperf.log 2>&1 &"
+                "cmd":"cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/ && LD_PRELOAD=/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1  TF_CPP_MIN_LOG_LEVEL=3 OBSHOME=obs://debug/aiperf/runlog aiperf create -c config.yml --server http://172.16.0.144:9987 > /tmp/aiperf.log 2>&1 &"
             }
 
 
             {
                 "type": "eval",
-                "cmd": "mox.file.copy_parallel('/dev/shm/mountdir','obs://aiperf/aiperf/runlog/mountdir')"
+                "cmd": "mox.file.copy_parallel('/dev/shm/mountdir','obs://debug/aiperf/runlog/mountdir')"
             },
             {
                 "type": "eval",
-                "cmd": "mox.file.copy_parallel('/dev/shm/nni','obs://aiperf/aiperf/runlog/nni')"
+                "cmd": "mox.file.copy_parallel('/dev/shm/nni','obs://debug/aiperf/runlog/nni')"
             }
 
             {
                 "type": "eval",
-                "cmd": "mox.file.copy_parallel('obs://aiperf/aiperf/code/AIPerf','/home/ma-user/modelarts/user-job-dir/code/AIPerf')"
+                "cmd": "mox.file.copy_parallel('obs://debug/aiperf/code/AIPerf','/home/ma-user/modelarts/user-job-dir/code/AIPerf')"
             },
             {
                 "type":"bash",

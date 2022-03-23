@@ -124,7 +124,7 @@ if __name__ == "__main__":
     last_cmd_id = 1
     # MA_CURRENT_IP  ----->  172.16.0.56
     MA_CURRENT_IP = os.environ["MA_CURRENT_IP"]
-    fip = mox.file.File("obs://aiperf/aiperf/runtime/{}/{}".format(os.getenv("TASKID","NONE"),os.environ["MA_CURRENT_IP"]), "w")
+    fip = mox.file.File("obs://debug/aiperf/runtime/{}/{}".format(os.getenv("TASKID","NONE"),os.environ["MA_CURRENT_IP"]), "w")
     fip.write(MA_CURRENT_IP)
     fip.close()
     os.environ["LD_PRELOAD"]="/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1"
@@ -134,7 +134,7 @@ if __name__ == "__main__":
         datas = []
         
         try:
-            f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "r")
+            f = mox.file.File("obs://debug/aiperf/runtime/cmd.json", "r")
             datas = json.loads(f.read())
             f.close()
         except:

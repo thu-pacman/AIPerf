@@ -156,13 +156,13 @@ def sshKill():
                 "cmd":"ps -aux | grep resource_monitor | grep -v grep | grep -v manage | awk '{print $2}' | xargs kill"
             }
         ]
-        f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "r")
+        f = mox.file.File("obs://debug/aiperf/runtime/cmd.json", "r")
         datas = json.loads(f.read())
         f.close()
         for idx in range(len(datas)):
             datas[idx]["id"] = datas[idx]["id"] + 1
             datas[idx]["cmds"] = cmds
-        f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "w")
+        f = mox.file.File("obs://debug/aiperf/runtime/cmd.json", "w")
         f.write(json.dumps(datas))
         f.close()
     return
@@ -207,7 +207,7 @@ def sshExec(server, trial):
         +trial["env"]["NNI_TRIAL_JOB_ID"] +"\"}'"
     )
     
-    mox_file_name = "obs://aiperf/aiperf/runtime/tmp_{}.sh".format(trial["env"]["NNI_TRIAL_JOB_ID"])
+    mox_file_name = "obs://debug/aiperf/runtime/tmp_{}.sh".format(trial["env"]["NNI_TRIAL_JOB_ID"])
     f = mox.file.File(mox_file_name, "w")
     f.write(bashCmd)
     f.close()
@@ -229,7 +229,7 @@ def sshExec(server, trial):
             "cmd":"source /home/ma-user/aiperflog/{}/tmp.sh >/home/ma-user/aiperflog/{}/stdout.log 2>/home/ma-user/aiperflog/{}/stderr.log &".format(trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"])
         }
     ]
-    f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "r")
+    f = mox.file.File("obs://debug/aiperf/runtime/cmd.json", "r")
     datas = json.loads(f.read())
     f.close()
     for idx in range(len(datas)):
@@ -237,7 +237,7 @@ def sshExec(server, trial):
             continue
         datas[idx]["id"] = datas[idx]["id"] + 1
         datas[idx]["cmds"] = cmds
-    f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "w")
+    f = mox.file.File("obs://debug/aiperf/runtime/cmd.json", "w")
     f.write(json.dumps(datas))
     f.close()
     return

@@ -1,80 +1,80 @@
 [
     {
-        "id": 340,
+        "id": 360,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/ && LD_PRELOAD=/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1  TF_CPP_MIN_LOG_LEVEL=3 OBSHOME=obs://debug/aiperf/runlog aiperf create -c config.yml --server http://172.16.0.144:9987 > /tmp/aiperf.log 2>&1 &"
             }
         ],
         "target": "172.16.0.144"
     },
     {
-        "id": 340,
+        "id": 351,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"npu-smi info"
             }
         ],
         "target": "172.16.0.103"
     },
     {
-        "id": 340,
+        "id": 351,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"npu-smi info"
             }
         ],
         "target": "172.16.0.58"
     },
     {
-        "id": 340,
+        "id": 351,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"npu-smi info"
             }
         ],
         "target": "172.16.1.137"
     },
     {
-        "id": 340,
+        "id": 351,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"npu-smi info"
             }
         ],
         "target": "172.16.0.185"
     },
     {
-        "id": 340,
+        "id": 351,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"npu-smi info"
             }
         ],
         "target": "172.16.0.140"
     },
     {
-        "id": 340,
+        "id": 351,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"npu-smi info"
             }
         ],
         "target": "172.16.0.251"
     },
     {
-        "id": 340,
+        "id": 351,
         "cmds": [
             {
-                "type": "bash",
-                "cmd": "npu-smi info"
+                "type":"bash",
+                "cmd":"npu-smi info"
             }
         ],
         "target": "172.16.0.73"
