@@ -1,1 +1,1 @@
-python3 demo.py  --slave 1   --ip 127.0.0.1  --batch_size 256  --epoch 10  --initial_lr 1e-1  --final_lr 0  --num_parallel_calls 10  --train_data_dir /dev/shm/train/  --val_data_dir /dev/shm/val/
+python3 demo.py --epoch 10 --train_data_dir /dev/shm/train/  --val_data_dir /dev/shm/val/

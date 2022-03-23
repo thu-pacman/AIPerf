@@ -45,7 +45,7 @@ class MsgDispatcherBase(Recoverable):
         """Run the tuner.
         This function will never return unless raise.
         """
-        _logger.info('Start dispatcher')
+        _logger.debug('Start dispatcher')
         if dispatcher_env_vars.NNI_MODE == 'resume':
             self.load_checkpoint()
 
@@ -68,7 +68,7 @@ class MsgDispatcherBase(Recoverable):
                 if self.worker_exceptions:
                     break
 
-        _logger.info('Dispatcher exiting...')
+        _logger.debug('Dispatcher exiting...')
         self.stopping = True
         if multi_thread_enabled():
             self.pool.close()
@@ -77,7 +77,7 @@ class MsgDispatcherBase(Recoverable):
             self.default_worker.join()
             self.assessor_worker.join()
 
-        _logger.info('Terminated by NNI manager')
+        _logger.debug('Terminated by NNI manager')
 
     def command_queue_worker(self, command_queue):
         """Process commands in command queues.
@@ -108,11 +108,11 @@ class MsgDispatcherBase(Recoverable):
 
         qsize = self.default_command_queue.qsize()
         if qsize >= QUEUE_LEN_WARNING_MARK:
-            _logger.warning('default queue length: %d', qsize)
+            _logger.debug('default queue length: %d', qsize)
 
         qsize = self.assessor_command_queue.qsize()
         if qsize >= QUEUE_LEN_WARNING_MARK:
-            _logger.warning('assessor queue length: %d', qsize)
+            _logger.debug('assessor queue length: %d', qsize)
 
     def process_command_thread(self, request):
         """Worker thread to process a command.

@@ -181,7 +181,7 @@ class Tuner(Recoverable):
         parameters: object created by user
         value: object reported by trial
         """
-        _logger.info('Customized trial job %s ignored by tuner', parameter_id)
+        _logger.debug('Customized trial job %s ignored by tuner', parameter_id)
         
     def _accept_customized_trials(self, accept=True):
         # FIXME: because Tuner is designed as interface, this API should not be here
@@ -227,14 +227,14 @@ class Tuner(Recoverable):
         Internal API under revising, not recommended for end users.
         """
         checkpoin_path = self.get_checkpoint_path()
-        _logger.info('Load checkpoint ignored by tuner, checkpoint path: %s', checkpoin_path)
+        _logger.debug('Load checkpoint ignored by tuner, checkpoint path: %s', checkpoin_path)
 
     def save_checkpoint(self):
         """
         Internal API under revising, not recommended for end users.
         """
         checkpoin_path = self.get_checkpoint_path()
-        _logger.info('Save checkpoint ignored by tuner, checkpoint path: %s', checkpoin_path)
+        _logger.debug('Save checkpoint ignored by tuner, checkpoint path: %s', checkpoin_path)
 
     def import_data(self, data):
         """

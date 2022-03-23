@@ -6,7 +6,7 @@ import zmq
 import random
 import json
 import sys
-import nni
+
 import nni.hyperopt_tuner.hyperopt_tuner as TPEtuner
 import multiprocessing
 from multiprocessing import Process, Queue, RLock
@@ -27,6 +27,8 @@ from dataset import create_dataset2 as create_dataset
 from CrossEntropySmooth import CrossEntropySmooth
 from lr_generator import get_lr, warmup_cosine_annealing_lr
 from metric import DistAccuracy, ClassifyCorrectCell
+
+import nni
 
 # imagenet2012
 Ntrain = 1281167
@@ -132,6 +134,12 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
     print('++++  container: {}'.format(sck.gethostname()))
     ms_lock.release()
     # init context
+    size=28
+    if(device_num==4):
+        size=28
+    if "SIZE_LIMIT" in os.environ:
+        size = int(os.environ["SIZE_LIMIT"])
+    print("variable_memory_max_size", size)
     mds_context.set_context(
         mode=mds_context.GRAPH_MODE, 
         enable_auto_mixed_precision=True,
@@ -139,7 +147,8 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
         save_graphs=False,
         device_id=device_id,
         max_call_depth=2000,
-        variable_memory_max_size='28GB'
+        #graph_memory_max_size=str((31-size)*1024 * 1024 * 1024),
+        variable_memory_max_size="{}GB".format(size)
     )
     
 
@@ -153,8 +162,11 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
         # auto_parallel_context().set_all_reduce_fusion_split_indices([85, 160])
     init()
     print("AIPerf hccl init success")
-    mds_context.reset_auto_parallel_context()
-    mds_context.set_auto_parallel_context(device_num=device_num, parallel_mode=ParallelMode.DATA_PARALLEL, gradients_mean=True)
+    if(device_num>1):
+        mds_context.reset_auto_parallel_context()
+        mds_context.set_auto_parallel_context(device_num=device_num, parallel_mode=ParallelMode.DATA_PARALLEL, gradients_mean=True)
+    else:
+        mds_context.reset_auto_parallel_context()
     eval_batch_size = 32
     # create dataset
     dataset_train = create_dataset(dataset_path=dataset_path_train, do_train=True, repeat_num=1, batch_size=batch_size, target=target)
@@ -241,6 +253,8 @@ if __name__ == "__main__":
     process = []
     for i in range(device_num):
         device_id = i
+        if(i==0):
+            continue
         process.append(
             Process(
                 target=mds_train_eval,
@@ -259,4 +273,23 @@ if __name__ == "__main__":
             )
         )
 
-    mds_train_eval()
+    for i in range(device_num-1):
+        process[i].start()
+        
+    device_id = 0
+    mds_train_eval(args.train_data_dir,                
+                    args.val_data_dir,
+                    args.epochs,
+                    args.batch_size,
+                    "./hp_demo.json",
+                    device_id,
+                    device_num,
+                    True,
+                    ms_lock,
+                    init_search_space_point)
+    
+
+    print("Waiting for all subprocesses done...")
+
+    for i in range(device_num-1):
+        process[i].join()

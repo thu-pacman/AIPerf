@@ -1,0 +1,82 @@
+[
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.0.144"
+    },
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.0.103"
+    },
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.0.58"
+    },
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.1.137"
+    },
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.0.185"
+    },
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.0.140"
+    },
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.0.251"
+    },
+    {
+        "id": 340,
+        "cmds": [
+            {
+                "type": "bash",
+                "cmd": "npu-smi info"
+            }
+        ],
+        "target": "172.16.0.73"
+    }
+]

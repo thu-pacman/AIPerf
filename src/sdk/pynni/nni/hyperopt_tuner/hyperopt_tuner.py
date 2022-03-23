@@ -318,7 +318,7 @@ class HyperoptTuner(Tuner):
                 rval = self.rval
                 # ignore duplicated reported final result (due to aware of intermedate result)
                 if parameter_id not in self.running_data:
-                    logger.info("Received duplicated final result with parameter id: %s", parameter_id)
+                    logger.debug("Received duplicated final result with parameter id: %s", parameter_id)
                     return
                 self.running_data.remove(parameter_id)
 
@@ -482,7 +482,7 @@ class HyperoptTuner(Tuner):
         """
         _completed_num = 0
         for trial_info in data:
-            logger.info("Importing data, current processing progress %s / %s", _completed_num, len(data))
+            logger.debug("Importing data, current processing progress %s / %s", _completed_num, len(data))
             _completed_num += 1
             if self.algorithm_name == 'random_search':
                 return
@@ -491,7 +491,7 @@ class HyperoptTuner(Tuner):
             assert "value" in trial_info
             _value = trial_info['value']
             if not _value:
-                logger.info("Useless trial data, value is %s, skip this trial data.", _value)
+                logger.debug("Useless trial data, value is %s, skip this trial data.", _value)
                 continue
             self.supplement_data_num += 1
             _parameter_id = '_'.join(
@@ -501,4 +501,4 @@ class HyperoptTuner(Tuner):
             self.receive_trial_result(parameter_id=_parameter_id,
                                       parameters=_params,
                                       value=_value)
-        logger.info("Successfully import data to TPE/Anneal tuner.")
+        logger.debug("Successfully import data to TPE/Anneal tuner.")

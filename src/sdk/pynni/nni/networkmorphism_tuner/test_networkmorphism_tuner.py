@@ -4,6 +4,8 @@
 import json
 from unittest import TestCase, main
 from copy import deepcopy
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import torch
 
 from nni.networkmorphism_tuner.graph import graph_to_json, json_to_graph

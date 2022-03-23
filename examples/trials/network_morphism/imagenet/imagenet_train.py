@@ -20,6 +20,8 @@
 import argparse
 import logging
 import os
+import moxing as mox  
+mox.file.shift('os', 'mox')
 import time
 import zmq
 import random
@@ -29,6 +31,7 @@ import nni
 import nni.hyperopt_tuner.hyperopt_tuner as TPEtuner
 import multiprocessing
 from multiprocessing import Process, Queue, RLock
+import requests
 
 import mindspore.nn as nn
 import mindspore.common.initializer as weight_init
@@ -178,15 +181,28 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
     kernel_meta_file = sck.gethostname() + '_' + str(device_id)
     if os.path.exists(kernel_meta_file):
         os.system("rm -rf " + str(kernel_meta_file))
-    os.system("mkdir " + str(kernel_meta_file))
+    os.system("mkdir -p " + str(kernel_meta_file))
     os.chdir(str(kernel_meta_file))
     ms_lock.acquire()
     print('++++  container: {}'.format(sck.gethostname()))
     ms_lock.release()
     # init context
-    mds_context.set_context(mode=mds_context.GRAPH_MODE, device_target=target, save_graphs=False)
-    mds_context.set_context(device_id=device_id)
-    mds_context.set_context(max_call_depth=2000)
+    size=28
+    if(device_num==4):
+        size=28
+    if "SIZE_LIMIT" in os.environ:
+        size = int(os.environ["SIZE_LIMIT"])
+    print("variable_memory_max_size", size)
+    mds_context.set_context(
+        mode=mds_context.GRAPH_MODE, 
+        enable_auto_mixed_precision=True,
+        device_target=target,
+        save_graphs=False,
+        device_id=device_id,
+        max_call_depth=2000,
+        #graph_memory_max_size=str((31-size)*1024 * 1024 * 1024),
+        variable_memory_max_size="{}GB".format(size)
+    )
 
     #os.environ['RANK_TABLE_FILE'] = os.environ['RANK_TABLE']
     os.environ['RANK_ID'] = str(device_id)
@@ -194,13 +210,16 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
     os.environ['DEVICE_ID'] = str(device_id)
     os.environ['DEVICE_NUM'] = str(device_num)
 
-    if enable_hccl:
-        mds_context.set_context(device_id=device_id, enable_auto_mixed_precision=True)
+    init()
+    print("AIPerf hccl init success")
+    if(device_num>1):
+        mds_context.reset_auto_parallel_context()
         mds_context.set_auto_parallel_context(device_num=device_num, parallel_mode=ParallelMode.DATA_PARALLEL, gradients_mean=True)
         auto_parallel_context().set_all_reduce_fusion_split_indices([85, 160])
-        init()
+    else:
+        mds_context.reset_auto_parallel_context()
 
-    eval_batch_size = 32
+    eval_batch_size = 256
     # create dataset
     dataset_train = create_dataset(dataset_path=dataset_path_train, do_train=True, repeat_num=1, batch_size=batch_size, target=target)
     step_size = dataset_train.get_dataset_size()
@@ -335,7 +354,7 @@ def train_eval_distribute(hyper_params, receive_config, trial_id, hp_path, curre
     best_acc = 0
     """
     lines = []
-    with open(os.environ["HOME"] +'/nni/experiments/{}/trials/{}/trial.log'.format(nni.get_experiment_id(), nni.get_trial_id()), 'r') as f:
+    with open(os.environ["OBSHOME"] +'/nni/experiments/{}/trials/{}/trial.log'.format(nni.get_experiment_id(), nni.get_trial_id()), 'r') as f:
         for index, line in enumerate(f.readlines()):
             lines.append(line)
     
@@ -367,11 +386,11 @@ if __name__ == "__main__":
         experiment_id = str(nni.get_experiment_id())
         trial_id = str(nni.get_trial_id())
         
-        experiment_path = os.environ["HOME"] + "/mountdir/nni/experiments/" + experiment_id
+        experiment_path = os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + experiment_id
         if args.file_service:
             sys.path.append("/opt/file_service/client")
             import FileClient
-            graph_path = os.path.join(os.environ["HOME"], 'graph', experiment_id)
+            graph_path = os.path.join(os.environ["OBSHOME"], 'graph', experiment_id)
             if not os.path.exists(graph_path):
                 os.makedirs(graph_path)
         # 开启模型生成和模型训练的异步执行
@@ -502,6 +521,9 @@ if __name__ == "__main__":
         with open(experiment_path + "/trials/" + str(nni.get_trial_id()) + "/output.log", "a+") as f:
             f.write("duration=" + str(time.time() - example_start_time) + "\n")
             f.write("best_acc=" + str(best_final) + "\n")
+        
+        URL="http://{}:9987/api/trial/finish".format(args.ip)
+        requests.post(URL, json={"trial":str(nni.get_trial_id())})
 
     except Exception as exception:
         logger.exception(exception)

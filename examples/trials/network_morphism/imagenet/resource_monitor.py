@@ -94,6 +94,10 @@ def record_device_info():
 if __name__ == "__main__":
     args = get_args()
     experiment_id = args.id
+    try:
+        os.system("mkdir -p /home/ma-user/mountdir/device_info/")
+    except:
+        pass
     log_path = '/home/ma-user/mountdir/device_info/' + experiment_id + '/' + os.environ['HOSTNAME']
     if not os.path.isdir(log_path):
         os.makedirs(log_path)

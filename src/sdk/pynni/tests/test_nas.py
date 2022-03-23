@@ -5,6 +5,8 @@ import os
 import sys
 from unittest import TestCase, main
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import torch
 import torch.nn as nn
 from nni.nas.pytorch.classic_nas import get_and_apply_next_architecture

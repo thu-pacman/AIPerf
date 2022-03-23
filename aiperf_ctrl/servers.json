@@ -1,8 +1,42 @@
 [
     {
-        "ip": "127.0.0.1",
+        "ip": "172.16.0.144",
         "tag": "",
-        "status": "waiting",
-        "CUDA_VISIBLE_DEVICES": "0"
+        "status": "waiting"
+    },
+    {
+        "ip": "172.16.0.103",
+        "tag": "",
+        "status": "waiting"
+    },
+    {
+        "ip": "172.16.0.58",
+        "tag": "",
+        "status": "waiting"
+    },
+    {
+        "ip": "172.16.1.137",
+        "tag": "",
+        "status": "waiting"
+    },
+    {
+        "ip": "172.16.0.185",
+        "tag": "",
+        "status": "waiting"
+    },
+    {
+        "ip": "172.16.0.140",
+        "tag": "",
+        "status": "waiting"
+    },
+    {
+        "ip": "172.16.0.251",
+        "tag": "",
+        "status": "waiting"
+    },
+    {
+        "ip": "172.16.0.73",
+        "tag": "",
+        "status": "waiting"
     }
 ]

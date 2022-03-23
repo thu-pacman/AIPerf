@@ -29,11 +29,11 @@ class CommandType(Enum):
 _lock = threading.Lock()
 try:
     _in_file = open(0, 'rb')
-    _out_file = open(2, 'wb')
-    logging.getLogger(__name__).info("success open fd")
+    _out_file = open(1, 'wb')
+    logging.getLogger(__name__).debug("success open fd")
 except OSError:
     _msg = 'IPC pipeline not exists, maybe you are importing tuner/assessor from trial code?'
-    logging.getLogger(__name__).warning(_msg)
+    logging.getLogger(__name__).debug(_msg)
 
 
 def send(command, data):
@@ -58,11 +58,11 @@ def receive():
     """Receive a command from Training Service.
     Returns a tuple of command (CommandType) and payload (str)
     """
-    logging.getLogger(__name__).info("block reading")
+    logging.getLogger(__name__).debug("block reading")
     #a = sys.stdin.read()
-    #logging.getLogger(__name__).info("read {}".format(a))
+    #logging.getLogger(__name__).debug("read {}".format(a))
     header = _in_file.read(8)
-    logging.getLogger(__name__).info('Received command, header: [%s]', header)
+    logging.getLogger(__name__).debug('Received command, header: [%s]', header)
     if header is None or len(header) < 8:
         # Pipe EOF encountered
         logging.getLogger(__name__).debug('Pipe EOF encountered')

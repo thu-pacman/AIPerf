@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 import os
 import sys
 import argparse
@@ -15,10 +18,6 @@ from .msg_dispatcher import MsgDispatcher
 
 logger = logging.getLogger('nni.main')
 logger.debug('START')
-
-if os.environ.get('COVERAGE_PROCESS_START'):
-    import coverage
-    coverage.process_startup()
 
 def augment_classargs(input_class_args, classname):
     if classname in ClassArgs:

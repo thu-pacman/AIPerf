@@ -153,10 +153,10 @@ class BuiltinTunersTestCase(TestCase):
                 # unsupported key
                 with self.assertRaises(Exception, msg="Testing {}".format(single)) as cm:
                     self.search_space_test_one(tuner_factory, single_search_space)
-                logger.info("%s %s %s", tuner_factory, single, cm.exception)
+                logger.debug("%s %s %s", tuner_factory, single, cm.exception)
         if not any(t in self._testMethodName for t in ["batch", "grid_search"]):
             # grid search fails for too many combinations
-            logger.info("Full supported search space: %s", full_supported_search_space)
+            logger.debug("Full supported search space: %s", full_supported_search_space)
             self.search_space_test_one(tuner_factory, full_supported_search_space)
 
     def import_data_test(self, tuner_factory, stype="choice_str"):
@@ -199,7 +199,7 @@ class BuiltinTunersTestCase(TestCase):
             data = [{"parameter": {"choice_num": 20}, "value": 1.1},
                     {"parameter": {"choice_num": 60}, "value": {"default": 1.2, "tmp": 2}}]
         tuner.import_data(data)
-        logger.info("Imported data successfully at the beginning")
+        logger.debug("Imported data successfully at the beginning")
         # generate parameters
         parameters = tuner.generate_multiple_parameters(list(range(3)))
         for i in range(3):
@@ -214,7 +214,7 @@ class BuiltinTunersTestCase(TestCase):
                     {"parameter": {"choice_num": 60}, "value": {"default": 1.2, "tmp": 2}},
                     {"parameter": {"choice_num": 50}, "value": 1.3}]
         tuner.import_data(data)
-        logger.info("Imported data successfully in the middle")
+        logger.debug("Imported data successfully in the middle")
         # generate parameters again
         parameters = tuner.generate_multiple_parameters([3])
         tuner.receive_trial_result(3, parameters[0], random.uniform(-100, 100))

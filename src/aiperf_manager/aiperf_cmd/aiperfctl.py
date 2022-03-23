@@ -1,3 +1,8 @@
+from tkinter import N
+import warnings
+ 
+warnings.filterwarnings('ignore')
+
 import argparse
 from concurrent.futures import thread
 import os
@@ -20,19 +25,22 @@ import threading
 import requests
 import signal
 import sys
+import torch
+import moxing as mox  
+
+mox.file.shift('os', 'mox')
 
 init(autoreset=True)
 logger = logging.getLogger("aiperfctrl")
 log_format = "INFO: %(asctime)s %(message)s"
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.CRITICAL,
     format=log_format,
     datefmt="%m/%d %I:%M:%S %p",
 )
-
-if os.environ.get('COVERAGE_PROCESS_START'):
-    import coverage
-    coverage.process_startup()
+logger.setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.CRITICAL)
+logging.getLogger("root").setLevel(logging.CRITICAL)
 
 """
 /**
@@ -78,12 +86,13 @@ def read_response(fio):
     try:
         length = int(header[2:])
     except:
-        logging.info("ERROR!")
-        logging.info(fio.read(30))
+        logger.info("ERROR!")
+        for i in  range(100):
+            logger.info(fio.read(30))
     data = fio.read(length)
     command = CommandType(header[:2])
     data = data.decode('utf8')
-    logging.getLogger(__name__).debug('Received command, data: [%s...]', data[:40])
+    logger.info('Received command, data: [%s...]', data[:40])
     return command, data
 
 dispatch_pid = -1
@@ -106,7 +115,7 @@ def term_sig_handler(signum, frame):
 
 def start_dispatcher(experiment_config):
     global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
-    msg_dispatcher_command = "/home/ma-user/miniconda3/envs/MindSpore-python3.7-aarch64/bin/python3 -m nni --exp_params {}".format(
+    msg_dispatcher_command = "python3 -m nni --exp_params {}".format(
         base64.b64encode(json.dumps(experiment_config).encode()).decode()
     )
     # print(msg_dispatcher_command)
@@ -115,13 +124,13 @@ def start_dispatcher(experiment_config):
     process = subprocess.Popen(
         msg_dispatcher_command, 
         stdin=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        close_fds=True
+        stdout=subprocess.PIPE,
+        stderr=None
     )
     dispatch_pid = process.pid
     logger.info("dispatcher pid : {}".format(process.pid))
     child_stdin = process.stdin
-    child_stderr = process.stderr
+    child_stderr = process.stdout
     
     child_stdin.write(b'IN000000')
     child_stdin.flush()
@@ -182,11 +191,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     signal.signal(signal.SIGINT, term_sig_handler)
     logger.info("launch_experiment")
     # 0. warm up
-    try :
-        os.mkdir(os.environ["HOME"]+"/nni")
-        os.mkdir(os.environ["HOME"]+"/nni/experiments")
-    except:
-        pass
+    
     nni_config = Config(config_file_name)
     experiment_config = nni_config.get_config("experimentConfig")
     print(
@@ -197,7 +202,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     )
 
     NNI_EXP_ID = "".join(random.sample(string.ascii_letters + string.digits, 8))
-    NNI_EXP_DIR = os.environ["HOME"]+"/nni/experiments/"+NNI_EXP_ID
+    NNI_EXP_DIR = "obs://aiperf/aiperf/runlog/nni/experiments/"+NNI_EXP_ID
     NNI_EXP_LOG_DIR = NNI_EXP_DIR + "/log"
     NNI_TRIALS_DIR = NNI_EXP_DIR + "/trials"
     NNI_CKPT_DIR = NNI_EXP_DIR + "/checkpoint"
@@ -243,7 +248,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
             NNI_SYS_DIR,
             NNI_OUTPUT_DIR,
             trial_concurrency,
-            experiment_config["trial"]["command"].replace("\\", "", 999999)
+            experiment_config["trial"]["command"].replace("\\", "", 999999).replace("127.0.0.1",os.environ["MA_CURRENT_IP"])
         )
         TRIALS_LIST.append(t)
         next_trial_seq_id += 1
@@ -294,7 +299,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
                     NNI_SYS_DIR,
                     NNI_OUTPUT_DIR,
                     trial_concurrency,
-                    experiment_config["trial"]["command"].replace("\\", "", 999999)
+                    experiment_config["trial"]["command"].replace("\\", "", 999999).replace("127.0.0.1",os.environ["MA_CURRENT_IP"])
                 )
                 TRIALS_LIST.append(t)
                 headers = {'Content-Type': 'application/json;charset=UTF-8'}

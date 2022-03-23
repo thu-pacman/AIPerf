@@ -19,7 +19,7 @@ _logger = logging.getLogger('nni')
 
 
 def get_next_parameter():
-    _logger.warning('Requesting parameter without NNI framework, returning empty dict')
+    _logger.debug('Requesting parameter without NNI framework, returning empty dict')
     return {
         'parameter_id': None,
         'parameters': {}
@@ -37,8 +37,8 @@ def get_sequence_id():
 def send_metric(string):
     metric = json_tricks.loads(string)
     if metric['type'] == 'FINAL':
-        _logger.info('Final result: %s', metric['value'])
+        _logger.debug('Final result: %s', metric['value'])
     elif metric['type'] == 'PERIODICAL':
-        _logger.info('Intermediate result: %s  (Index %s)', metric['value'], metric['sequence'])
+        _logger.debug('Intermediate result: %s  (Index %s)', metric['value'], metric['sequence'])
     else:
         _logger.error('Unexpected metric: %s', string)

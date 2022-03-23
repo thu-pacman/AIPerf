@@ -17,9 +17,6 @@ from .constants import DEFAULT_REST_PORT
 from .tensorboard_utils import start_tensorboard, stop_tensorboard
 init(autoreset=True)
 
-if os.environ.get('COVERAGE_PROCESS_START'):
-    import coverage
-    coverage.process_startup()
 
 def nni_info(*args):
     if args[0].version:

@@ -256,7 +256,7 @@ class MsgDispatcher(MsgDispatcherBase):
             if not hasattr(self.tuner, '_accept_customized'):
                 self.tuner._accept_customized = False
             if not self.tuner._accept_customized:
-                _logger.info('Customized trial job %s ignored by tuner', id_)
+                _logger.debug('Customized trial job %s ignored by tuner', id_)
                 return
             '''
             # v1.1

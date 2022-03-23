@@ -5,6 +5,8 @@
 from abc import abstractmethod
 from collections.abc import Iterable
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import torch
 from torch import nn
 from torch.nn import functional

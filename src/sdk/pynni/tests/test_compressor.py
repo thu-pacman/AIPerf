@@ -4,6 +4,8 @@
 from unittest import TestCase, main
 import numpy as np
 import tensorflow as tf
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import torch
 import torch.nn.functional as F
 import schema

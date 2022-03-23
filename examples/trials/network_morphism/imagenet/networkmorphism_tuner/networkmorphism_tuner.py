@@ -9,6 +9,8 @@ networkmorphsim_tuner.py
 
 import logging
 import os
+import moxing as mox  
+mox.file.shift('os', 'mox')
 
 from nni.tuner import Tuner
 from nni.utils import OptimizeMode, extract_scalar_reward
@@ -76,7 +78,7 @@ class NetworkMorphismTuner(Tuner):
         """
         # v1.1
         exp_id = os.getcwd().split("/")[-2]
-        logPath = os.environ["HOME"] + "/mountdir/nni/experiments/" + exp_id + "/log"
+        logPath = os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + exp_id + "/log"
         self.path = os.path.join(logPath, path)
         logger.info("self.path = " + self.path)
 
@@ -186,10 +188,10 @@ class NetworkMorphismTuner(Tuner):
         f11.write("tuner.generate:"+"total time:"+str(total_start)+"\n")
         f11.close()
 
-        if (os.path.exists(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time") and os.path.exists(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/c_time")):
-            f3 = open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time", "r")
+        if (os.path.exists(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time") and os.path.exists(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/c_time")):
+            f3 = open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time", "r")
             g_t = float(f3.read())
-            f4 = open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/c_time", "r")
+            f4 = open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/c_time", "r")
             c_t = float(f4.read())
             f11=open("/root/xlei","a+")
             f11.write("tuner.generate:"+"total time:"+str(total_start)+"\n")
@@ -239,16 +241,16 @@ class NetworkMorphismTuner(Tuner):
         #self.total_data[parameter_id] = (json_out, father_id, model_id)
             json_and_id="json_out="+str(json_out)+"+father_id="+str(father_id)+"+parameter_id="+str(parameter_id)+"+history="+"True"
             lock.acquire()
-            f1=open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+")
+            f1=open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+")
             f1.write("single_generate=" + str(end - start)+"\n")
             f1.close()
-            f=open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+")
+            f=open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+")
             f.write(json_and_id+"\n")
             f.close()
             lock.release()
         total_end=time.time()
         lock.acquire()
-        f1=open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+")
+        f1=open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+")
         f1.write("total_generate=" + str(total_end - total_start)+"\n")
         f1.close()
         lock.release()
@@ -257,7 +259,7 @@ class NetworkMorphismTuner(Tuner):
         if totime<0:
             totime = 0-totime
 
-        f1 = open (os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time","w+")
+        f1 = open (os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time","w+")
         gt = totime/rate
         f1.write(str(gt))
         f1.close()

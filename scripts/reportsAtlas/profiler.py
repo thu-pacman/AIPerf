@@ -262,6 +262,7 @@ def profiler(exppath):
                     tempdict['hpoid'].append(hpoid)
                     tempdict['eval_per_image'].append(eval_flops_per_image)
                     tempdict['train_per_image'].append(train_flops_per_image)
+                    print(trial, eval_flops_per_image, train_flops_per_image)
 
     #print("total models: "+str(len(tempdict['trialid'])))
     return tempdict

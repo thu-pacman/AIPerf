@@ -166,7 +166,7 @@ def reload_tensorflow_variables(tf, session):
     mutable_layers = sorted(list(mutable_layers))
     for mutable_id, mutable_layer_id in mutable_layers:
         if mutable_id not in _namespace:
-            _logger.warning("%s not found in name space", mutable_id)
+            _logger.debug("%s not found in name space", mutable_id)
             continue
         name_prefix = "{}_{}".format(mutable_id, mutable_layer_id)
         # get optional inputs names
@@ -239,7 +239,7 @@ def _get_layer_and_inputs_from_tuner(mutable_id, mutable_layer_id, optional_inpu
             chosen_inputs.append(optional_inputs_keys[optional_input_state % len(optional_inputs)])
             optional_input_state //= len(optional_inputs)
 
-    _logger.info("%s_%s: layer: %s, optional inputs: %s", mutable_id, mutable_layer_id, chosen_layer, chosen_inputs)
+    _logger.debug("%s_%s: layer: %s, optional inputs: %s", mutable_id, mutable_layer_id, chosen_layer, chosen_inputs)
     return chosen_layer, chosen_inputs
 
 
@@ -255,13 +255,13 @@ def convert_nas_search_space(search_space):
     for k, v in search_space.items():
         if "_type" not in v:
             # this should not happen
-            _logger.warning("There is no _type in one of your search space values with key '%s'"
+            _logger.debug("There is no _type in one of your search space values with key '%s'"
                             ". Please check your search space", k)
             ret[k] = v
         elif v["_type"] != "mutable_layer":
             ret[k] = v
         else:
-            _logger.info("Converting mutable_layer search space with key '%s'", k)
+            _logger.debug("Converting mutable_layer search space with key '%s'", k)
             # v["_value"] looks like {'mutable_layer_1': {'layer_choice': ...} ...}
             values = v["_value"]
             for layer_name, layer_data in values.items():
@@ -283,13 +283,13 @@ def convert_nas_search_space(search_space):
                         _logger.error("Might not be able to handle optional_input_size < 0, please double check")
                     input_size[1] += 1
                 else:
-                    _logger.info("Optional input choices are set to empty by default in %s", layer_key)
+                    _logger.debug("Optional input choices are set to empty by default in %s", layer_key)
                     input_size = [0, 1]
 
                 if layer_data.get("optional_inputs"):
                     total_state_size = len(layer_data["optional_inputs"]) ** (input_size[1] - 1)
                 else:
-                    _logger.info("Optional inputs not found in %s", layer_key)
+                    _logger.debug("Optional inputs not found in %s", layer_key)
                     total_state_size = 1
 
                 converted = {
@@ -303,7 +303,7 @@ def convert_nas_search_space(search_space):
                         "_type": "randint", "_value": [0, total_state_size]
                     }
                 }
-                _logger.info(converted)
+                _logger.debug(converted)
                 ret.update(converted)
 
     return ret

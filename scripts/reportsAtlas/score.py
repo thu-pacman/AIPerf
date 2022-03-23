@@ -274,7 +274,7 @@ def process_log(trial_id_list, experiment_data, dur, experiment_path):
 
     flops_info = profiler.profiler(experiment_path)
 
-    for index in np.arange(0.3, dur+0.1, 0.15):
+    for index in np.arange(0.1, dur+0.1, 0.15):
         #print(index)
         start_time,stop_time = find_startime(trial_id_list, index, experiment_path)
 
@@ -299,7 +299,6 @@ def process_log(trial_id_list, experiment_data, dur, experiment_path):
                     #读取每个超参对应的epoch
                     epoch = result_dict[trial_id][hp_num]
                     total_FLOPs += (eval_ops * 50000 + trian_ops * 1280000) * epoch
-                    #print(trial_id,hp_num,epoch)
             else:
                 faild_trial.append(trial_id)
         fraction = float(float(total_FLOPs) * float(abs(math.log(1-max_acc,math.e)))) / float(run_sec)
@@ -342,9 +341,11 @@ def cal_report_results(expid):
                 start_time = time.mktime(time.strptime(hyperparameter['start_date'], "%m/%d/%Y, %H:%M:%S"))
                 start_time_list.append(start_time)
     start_time = min(start_time_list)
-    print("start time:{}".format(start_time))
+    # print("start time:{}".format(start_time))
     experiment_data = find_all_trials(nnidir, expid, trial_id_list)
-    print(experiment_data)
+    # print(experiment_data)
+    for k in experiment_data:
+        print(k, len(experiment_data[k][0]))
     for index in range(len(trial_id_list)-1,-1,-1):
         if trial_id_list[index] in experiment_data:
             stop_time = experiment_data[trial_id_list[index]][-1][-1][1]

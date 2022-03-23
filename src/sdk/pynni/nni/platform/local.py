@@ -2,6 +2,8 @@
 # Licensed under the MIT license.
 
 import os
+import moxing as mox
+mox.file.shift('os', 'mox')
 import sys
 import json
 import time

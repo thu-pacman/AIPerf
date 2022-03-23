@@ -2,6 +2,8 @@
 # Licensed under the MIT license.
 
 import os
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
