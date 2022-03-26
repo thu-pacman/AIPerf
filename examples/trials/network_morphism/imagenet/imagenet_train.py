@@ -18,6 +18,7 @@
 
 # -*-coding:utf-8-*-
 import argparse
+from asyncore import write
 import logging
 import os
 import moxing as mox  
@@ -522,8 +523,11 @@ if __name__ == "__main__":
             f.write("duration=" + str(time.time() - example_start_time) + "\n")
             f.write("best_acc=" + str(best_final) + "\n")
         
-        URL="http://{}:9987/api/trial/finish".format(args.ip)
-        requests.post(URL, json={"trial":str(nni.get_trial_id())})
+        # URL="http://{}:9987/api/trial/finish".format(args.ip)
+        # requests.post(URL, json={"trial":str(nni.get_trial_id())})
+        with open("obs://aiperf/aiperf/runtime/finish/{}".format(str(nni.get_trial_id()), "w") as f:
+            f.write("ok")
+    
 
     except Exception as exception:
         logger.exception(exception)
