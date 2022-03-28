@@ -88,7 +88,9 @@ class MsgDispatcher(MsgDispatcherBase):
         self.current_jobs = 0
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
-        self.socket.bind("tcp://0.0.0.0:800081")
+        import os
+        MA_CURRENT_IP = os.environ["MA_CURRENT_IP"]
+        self.socket.bind("tcp://{}:800081".format(MA_CURRENT_IP))
         self.zmq_server_thread = th.Thread(target = MsgDispatcher.zmq_server_func, args=(self,))
         self.zmq_server_thread.setDaemon(True)
         self.zmq_server_thread.start()
@@ -106,7 +108,7 @@ class MsgDispatcher(MsgDispatcherBase):
                     lock.release()
                 elif message["type"] == "generated_parameter":
                     self.current_jobs += 1
-                    print("New model generated, current jobs = " + str(self.current_jobs))
+                    #print("New model generated, current jobs = " + str(self.current_jobs))
                     if not "parameters" in message:
                         self.socket.send_pyobj("nothing")
                         continue
@@ -125,11 +127,11 @@ class MsgDispatcher(MsgDispatcherBase):
                     self.socket.send_pyobj("nothing")
                     self._handle_final_metric_data(message)
             except Exception as e:
-                print('error:',e)
+                #print('error:',e)
                 sys.exit()
 
     def _on_exit(self):
-        print("dispatcher _on_exit")
+        #print("dispatcher _on_exit")
         #self.zmq_server_thread.join()
         self.socket.unbind("tcp://0.0.0.0:800081")
 
@@ -210,7 +212,7 @@ class MsgDispatcher(MsgDispatcherBase):
             if self.assessor is not None:
                 self._handle_intermediate_metric_data(data)
         elif data['type'] == MetricType.REQUEST_PARAMETER:
-            print("REQUEST_PARAMETER is not supported.")
+            #print("REQUEST_PARAMETER is not supported.")
             exit(1)  # v1.1
             assert multi_phase_enabled()
             assert data['trial_job_id'] is not None

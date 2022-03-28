@@ -178,7 +178,7 @@ class NetworkMorphismTuner(Tuner):
         """
         #If there is no history, slave node will use the fake model.
         if not self.history:
-            print("If there is no history, generate_parameters should not be called!")
+            # print("If there is no history, generate_parameters should not be called!")
             exit(1)
         total_start=time.time()
         rate = 1
@@ -205,7 +205,7 @@ class NetworkMorphismTuner(Tuner):
                 self.training_queue.append((generated_graph, new_father_id, new_model_id))
                 #self.descriptors.append(generated_graph.extract_descriptor())
             else:
-                print("training_queue should be an empty list.")
+                # print("training_queue should be an empty list.")
                 exit(1)
 
             graph, father_id, model_id = self.training_queue.pop(0)
@@ -346,7 +346,7 @@ class NetworkMorphismTuner(Tuner):
             self.bo.add_child(father_id, model_id)
         ret_tree=self.bo.search_tree.get_dict(0)
         t2 = time.time()
-        print("Update time = " + str(t2 - t1))
+        # print("Update time = " + str(t2 - t1))
 
     def add_model(self, metric_value, model_id):
         """ Add model to the history, x_queue and y_queue

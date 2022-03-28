@@ -1,6 +1,6 @@
 authorName: default
 experimentName: example_imagenet-network-morphism-test
-trialConcurrency: 8
+trialConcurrency: 113
 maxExecDuration: 24h
 maxTrialNum: 6000
 #choice: local, remote, pai
@@ -27,14 +27,14 @@ trial:
     command: NPU_NUM=8 \
              OBSHOME=obs://aiperf/aiperf/runlog \
              python3 imagenet_train.py \
-             --slave 8 \
+             --slave 113 \
              --ip 127.0.0.1 \
              --batch_size 256 \
              --train_data_dir /home/ma-user/modelarts/inputs/data_1/train/ \
              --val_data_dir /home/ma-user/modelarts/inputs/data_1/val/ \
              --epochs 150 \
-             --warmup_1 100 \   
-             --warmup_2 125 \   
+             --warmup_1 150 \   
+             --warmup_2 150 \   
              --warmup_3 150
              
     codeDir: .

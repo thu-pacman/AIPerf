@@ -24,7 +24,7 @@ def get_args():
     """
     parser = argparse.ArgumentParser("modelarts")
     parser.add_argument("--data_url", type=str)
-    parser.add_argument("--data", type=str)
+    parser.add_argument("--data", type=str, default="/home/ma-user/modelarts/inputs/data_1/")
     return parser.parse_args()
 
 if __name__ == "__main__":

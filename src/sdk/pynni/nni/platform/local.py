@@ -66,7 +66,7 @@ def get_next_parameter():
 def send_metric(string):
     if _nni_platform != 'local':
         assert len(string) < 1000000, 'Metric too long'
-        print("NNISDK_MEb'%s'" % (string), flush=True)
+        # print("NNISDK_MEb'%s'" % (string), flush=True)
     else:
         data = (string + '\n').encode('utf8')
         assert len(data) < 1000000, 'Metric too long'

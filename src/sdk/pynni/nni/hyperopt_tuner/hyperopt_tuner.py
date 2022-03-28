@@ -401,8 +401,8 @@ class HyperoptTuner(Tuner):
         if idxs_map is None:
             idxs_map = {}
 
-        print(vals)
-        print(type(vals))
+        #print(vals)
+        #print(type(vals))
         #print(idxs)
         #print(type(idxs))
         assert set(idxs.keys()) == set(vals.keys())

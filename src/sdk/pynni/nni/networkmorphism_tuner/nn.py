@@ -302,6 +302,56 @@ class CnnGenerator(NetworkGenerator):
 
         output_node_id = graph.add_layer(StubAdd(), [output_node_id1, output_node_id00])
         output_node_id = graph.add_layer(StubReLU(), output_node_id)
+        ### start debug
+        """
+        output_node_id00 = output_node_id
+
+
+        output_node_id1 = graph.add_layer(
+            self.conv(
+                256,
+                64,
+                kernel_size=1,
+                stride=1),
+            output_node_id
+        )
+        output_node_id1 = graph.add_layer(
+            self.batch_norm(
+                graph.node_list[output_node_id1].shape[-1]), output_node_id1
+        )
+        output_node_id1 = graph.add_layer(StubReLU(), output_node_id1)
+
+        output_node_id1 = graph.add_layer(
+            self.conv(
+                64,
+                64,
+                kernel_size=3,
+                stride=1),
+            output_node_id1
+        )
+        output_node_id1 = graph.add_layer(
+            self.batch_norm(
+                graph.node_list[output_node_id1].shape[-1]), output_node_id1
+        )
+        output_node_id1 = graph.add_layer(StubReLU(), output_node_id1)
+
+        output_node_id1 = graph.add_layer(
+            self.conv(
+                64,
+                256,
+                kernel_size=1,
+                stride=1),
+            output_node_id1
+        )
+        output_node_id1 = graph.add_layer(
+            self.batch_norm(
+                graph.node_list[output_node_id1].shape[-1]), output_node_id1
+        )
+
+        output_node_id = graph.add_layer(StubAdd(), [output_node_id1, output_node_id00])
+        output_node_id = graph.add_layer(StubReLU(), output_node_id)
+        """
+        ### end debug
         ###
         ###
         ###

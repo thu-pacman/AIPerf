@@ -274,7 +274,7 @@ def process_log(trial_id_list, experiment_data, dur, experiment_path):
 
     flops_info = profiler.profiler(experiment_path)
 
-    for index in np.arange(0.1, dur+0.1, 0.15):
+    for index in np.arange(0.3, dur+0.1, 0.15):
         #print(index)
         start_time,stop_time = find_startime(trial_id_list, index, experiment_path)
 
@@ -329,7 +329,6 @@ def cal_report_results(expid):
     id_dict = sorted(zip(id_dict.keys(),id_dict.values()))
     id_dict = dict(id_dict)
     trial_id_list = list(id_dict.values())
- 
     start_time_list = []
     for i in range(len(trial_id_list)):
         trial_id = trial_id_list[i]
@@ -344,8 +343,6 @@ def cal_report_results(expid):
     # print("start time:{}".format(start_time))
     experiment_data = find_all_trials(nnidir, expid, trial_id_list)
     # print(experiment_data)
-    for k in experiment_data:
-        print(k, len(experiment_data[k][0]))
     for index in range(len(trial_id_list)-1,-1,-1):
         if trial_id_list[index] in experiment_data:
             stop_time = experiment_data[trial_id_list[index]][-1][-1][1]

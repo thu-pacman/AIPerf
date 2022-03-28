@@ -968,38 +968,6 @@ class TfModel:
 
         self.count = 0
         self.loadh5 = 0
-        """
-        try:
-            with h5py.File("/mnt/zoltan/public/dataset/resnet50_weights_tf_dim_ordering_tf_kernels.h5", 'r') as f:
-                layer_names = self.load_attributes_from_hdf5_group(f, 'layer_names')
-                filtered_layer_names = []
-                for name in layer_names:
-                    g = f[name]
-                    weight_names = self.load_attributes_from_hdf5_group(g, 'weight_names')
-                    if weight_names:
-                        filtered_layer_names.append(name)
-                layer_names = filtered_layer_names  # 107 layers
-                try:
-                    for k, name in enumerate(layer_names):
-                        g = f[name]
-                        weight_names = self.load_attributes_from_hdf5_group(g, 'weight_names')
-                        weight_values = [np.asarray(g[weight_name]) for weight_name in weight_names]
-                        while not self.legacy_weights():
-                            self.count += 1
-                        symbolic_weights = self.legacy_weights()
-                        weight_value_tuples = zip(symbolic_weights, weight_values)
-                        try:
-                            K.batch_set_value(weight_value_tuples)
-                            self.loadh5 += 1
-                        except Exception as E:
-                            continue 
-                        self.count += 1
-                except Exception as E:
-                    self.loadh5 += 0
-            print("############## Loading initial weights for " + str(self.loadh5) + " layers.")
-        except Exception as E:
-            print(E)
-        """
 
     def legacy_weights(self):
         return self.layers[self.count].trainable_weights + self.layers[self.count].non_trainable_weights

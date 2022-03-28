@@ -13,3 +13,4 @@ src/nni_manager/dist/
 **/model_path
 dispatcher.log
 *.ipynb
+**/ips/

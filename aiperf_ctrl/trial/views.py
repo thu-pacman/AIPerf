@@ -91,6 +91,8 @@ def query_trial(request):
             "success":False
         }
         return JsonResponse(res)
+
+    """
     finish_trials = mox.file.list_directory("obs://aiperf/aiperf/runtime/finish/")
     for t in TRIAL_LIST:
         if (t["status"]=="running") and (t["env"]["NNI_TRIAL_JOB_ID"] in finish_trials):
@@ -102,6 +104,7 @@ def query_trial(request):
                     server["tag"]=""
                     break
             break
+    """
 
     reportData = json.loads(request.body.decode("utf-8"))
     res={

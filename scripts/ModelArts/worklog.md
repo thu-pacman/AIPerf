@@ -385,3 +385,6 @@ x256b 8155200199.0 24096076719.0
                 "type": "bash",
                 "cmd": "cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/ && unset RANK_TABLE_FILE &&  LD_PRELOAD=/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1 GLOG_v=1 MINDSPORE_HCCL_CONFIG_PATH=/home/ma-user/modelarts/user-job-dir/code/AIPerf/hccl.json SIZE_LIMIT=28 NPU_NUM=8 python3 multithread_demo.py  --batch_size 256  --epoch 15  --train_data_dir /home/ma-user/modelarts/inputs/data_1/train/  --val_data_dir /home/ma-user/modelarts/inputs/data_1/val/ > /tmp/stdout.log 2>/tmp/stderr.log"
             }
+
+
+            ~/mountdir/nni/experiments/pNB6gC1j/hyperparameter_epoch/TGos6/model.json

@@ -262,8 +262,9 @@ def profiler(exppath):
                     tempdict['hpoid'].append(hpoid)
                     tempdict['eval_per_image'].append(eval_flops_per_image)
                     tempdict['train_per_image'].append(train_flops_per_image)
-                    print(trial, eval_flops_per_image, train_flops_per_image)
-
+                    if(int(eval_flops_per_image) != 7806577351):
+                        print("new struct", trial, eval_flops_per_image, eval_flops_per_image/7806577351.0, train_flops_per_image)
+    # exit(1)
     #print("total models: "+str(len(tempdict['trialid'])))
     return tempdict
 
