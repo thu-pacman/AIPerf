@@ -7,3 +7,4 @@ src/nni_manager/dist/
 
 **/__pycache__/
 **/build/
+**/.ipynb_checkpoints/

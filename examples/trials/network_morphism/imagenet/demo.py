@@ -196,17 +196,6 @@ def train_eval(args):
         dtype=tf.float32
     )
 
-    # run epochs and patience
-    loopnum = seqid // args.slave
-    patience = min(int(6 + (2 * loopnum)), 20)
-    if loopnum == 0:
-        run_epochs = int(args.warmup_1)
-    elif loopnum == 1:
-        run_epochs = int(args.warmup_2)
-    elif loopnum == 2:
-        run_epochs = int(args.warmup_3)
-    else:
-        run_epochs = int(args.epochs)
     
     # if loopnum < 4:
     #     patience = int(8 + (2 * loopnum))
@@ -239,12 +228,12 @@ def train_eval(args):
     #     save_freq='epoch',
     #     save_weights_only=True,
     # )
-    x_train = np.random.rand(10000,224,224,3)
-    y_train = 0 * np.random.rand(10000,1000)
-    x_test = np.random.rand(1000,224,224,3)
-    y_test = 0 * np.random.rand(1000,1000)
+    #x_train = np.random.rand(10000,224,224,3)
+    #y_train = 0 * np.random.rand(10000,1000)
+    #x_test = np.random.rand(1000,224,224,3)
+    #y_test = 0 * np.random.rand(1000,1000)
 
-    history = net.fit(x_train, y_train, batch_size=448, epochs=10, validation_data=(x_test, y_test), shuffle=True)
+    #history = net.fit(x_train, y_train, batch_size=448, epochs=10, validation_data=(x_test, y_test), shuffle=True)
 
     history = net.fit(
         ds_train,

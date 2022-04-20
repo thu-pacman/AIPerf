@@ -1,0 +1,1 @@
+python3 demo.py --train_data_dir /mnt/zoltan/public/dataset/rawdata-mini/train/ --val_data_dir /mnt/zoltan/public/dataset/rawdata-mini/val/ --batch_size 64 --epochs 10

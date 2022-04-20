@@ -1012,11 +1012,6 @@ class TfModel:
                 chunk_id += 1
         return data
 
-class ONNXModel:
-    # to do in the future using onnx ir
-    def __init__(self, graph):
-        pass
-
 
 class JSONModel:
     def __init__(self, graph):
