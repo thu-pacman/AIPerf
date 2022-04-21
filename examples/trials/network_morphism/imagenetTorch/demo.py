@@ -20,6 +20,8 @@
 
 import argparse
 import logging
+import time
+import datetime
 import os
 import json
 import time
@@ -32,6 +34,9 @@ import torch.optim as optim
 import torch.nn as nn
 from torchvision import datasets, transforms
 from torch.autograd import Variable
+
+from torch.cuda.amp import autocast, GradScaler
+torch.backends.cudnn.benchmark = True
 
 from nni.networkmorphism_tuner.graph import json_to_graph
 
@@ -97,35 +102,7 @@ def parse_rev_args(args):
         )
     """
 
-
-# class SendMetrics(tf.keras.callbacks.Callback):
-#     """
-#     Keras callback to send metrics to NNI framework
-#     """
-
-#     def __init__(self, hp_path):
-#         super(SendMetrics, self).__init__()
-#         self.hp_path = hp_path
-#         self.best_acc = 0
-
-#     def on_epoch_end(self, epoch, logs=None):
-#         """
-#         Run on end of each epoch
-#         """
-#         if logs is None:
-#             logs = dict()
-#         logger.debug(logs)
-#         with open(self.hp_path, 'r') as f:
-#             hp = json.load(f)
-#         hp['epoch'] = epoch + 1
-#         if logs['val_accuracy'] > self.best_acc:
-#             self.best_acc = logs['val_accuracy']
-#             hp['single_acc'] = logs['val_accuracy']
-#         hp['finish_date'] = time.strftime('%m/%d/%Y, %H:%M:%S', time.localtime(time.time()))
-#         with open(self.hp_path, 'w') as f:
-#             json.dump(hp, f)
-
- #对训练集做一个变换
+#对训练集做一个变换
 train_transforms = transforms.Compose([
     transforms.Resize(224),
     transforms.RandomResizedCrop(224),		#对图片尺寸做一个缩放切割
@@ -159,15 +136,20 @@ def train_eval(args):
     # train procedure
     
     train_datasets = datasets.ImageFolder(args.train_data_dir, transform=train_transforms)
-    train_dataloader = torch.utils.data.DataLoader(train_datasets, batch_size=args.batch_size, shuffle=True,num_workers=8,pin_memory=True)
+    train_dataloader = torch.utils.data.DataLoader(train_datasets, batch_size=args.batch_size, shuffle=True,num_workers=12,pin_memory=True)
 
     # val procedure
     
     val_datasets = datasets.ImageFolder(args.val_data_dir, transform=train_transforms)
-    val_dataloader = torch.utils.data.DataLoader(train_datasets, batch_size=32, shuffle=True,num_workers=8,pin_memory=True)
-
+    val_dataloader = torch.utils.data.DataLoader(train_datasets, batch_size=32, shuffle=True,num_workers=12,pin_memory=True)
+    scaler = GradScaler()
     for i in range(args.epochs):
-        epoch = i
+        epoch = i+1
+        print("[{}] PRINT Epoch {}/{}".format(
+            time.strftime('%Y/%m/%d, %I:%M:%S %p'),
+            epoch,
+            args.epochs
+        ))
         
         net.train()
         train_loss = 0.
@@ -176,20 +158,17 @@ def train_eval(args):
             batch_x  = Variable(batch_x).cuda()
             batch_y  = Variable(batch_y).cuda()
             optimizer.zero_grad()
-            out = net(batch_x)
-            loss1 = loss_func(out, batch_y)
+            with autocast():
+                out = net(batch_x)
+                loss1 = loss_func(out, batch_y)
             train_loss += loss1.item()
             pred = torch.max(out, 1)[1]
             train_correct = (pred == batch_y).sum()
             train_acc += train_correct.item()
-            loss1.backward()
-            optimizer.step()
-        print('Epoch[{}/{}] Train Loss: {:.6f}, Acc: {:.6f}'.format(
-            epoch,
-            args.epochs,
-            train_loss / (len(train_datasets)), 
-            train_acc / (len(train_datasets))
-        ))#输出训练时的loss和acc
+            scaler.scale(loss1).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        
         net.eval()
         eval_loss= 0.
         eval_acc = 0.
@@ -202,11 +181,15 @@ def train_eval(args):
             pred = torch.max(out, 1)[1]
             num_correct = (pred == batch_y).sum()
             eval_acc += num_correct.item()
-        print('Epoch[{}/{}] Val Loss: {:.6f}, Acc: {:.6f}'.format(
-            epoch,
-            args.epochs,
-            eval_loss / (len(val_datasets)), 
-            eval_acc / (len(val_datasets))))
+        print('[{}] PRINT - loss: {:.4f}, - accuracy: {:.4f} - val_loss: {:.4f} - val_accuracy: {:.4f}'.format(
+                time.strftime('%Y/%m/%d, %I:%M:%S %p'),
+                train_loss / (len(train_datasets)), 
+                train_acc / (len(train_datasets)),
+                eval_loss / (len(val_datasets)),
+                eval_acc / (len(val_datasets))
+            )
+        )
+            
 
 
 if __name__ == "__main__":

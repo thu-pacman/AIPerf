@@ -8,3 +8,4 @@ src/nni_manager/dist/
 **/__pycache__/
 **/build/
 **/.ipynb_checkpoints/
+**/nni_sdk.egg-info/
