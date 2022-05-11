@@ -1,38 +1,6 @@
-![](https://github.com/AI-HPC-Research-Team/AIPerf/blob/master/logo.JPG)
+# 部署 AIPerf
 
-![](https://github.com/AI-HPC-Research-Team/AIPerf/blob/master/logo_PCL.jpg) ![](https://github.com/AI-HPC-Research-Team/AIPerf/blob/master/logo_THU.jpg)
-
-**<font size=4>开发单位：鹏城实验室(PCL)，清华大学(THU)</font>**
-
-**<font size=4>特别感谢国防科技大学窦勇老师及其团队的宝贵意见和支持</font>**
-
-
-
-
-# <span id="head1">AIPerf Benchmark v1.0</span>
-
-## <span id="head2"> Benchmark结构设计</span>
-
-**关于AIPerf设计理念，技术细节，以及测试结果，请参考论文：https://arxiv.org/abs/2008.07141** 
-
-AIPerf Benchmark基于微软NNI开源框架，以自动化机器学习（AutoML）为负载，使用network morphism进行网络结构搜索和TPE进行超参搜索。
-
-
-
-## <span id="head3"> Benchmark安装说明</span>
-
- **本文用于在容器环境下运行Benchmark**
-
-### <span id="head5"> 一、Benchmark环境配置、安装要求</span>
-
-
-Benchmark运行环境由Master节点-Slaves节点组成，其中Mater节点不参与调度不需要配置GPU/加速卡，Slave节点可配置多块加速卡。
-
-#### <span id="head6"> 1.物理机环境配置</span>
-
-(物理机执行：默认root用户操作)
-
-**配置共享文件系统**
+# 1. 环境NFS准备
 
 配置共享文件系统需要在物理机环境中进行，若集群环境中已有共享文件系统则跳过配置共享文件系统的步骤,若无共享文件系统，则需配置共享文件系统。
 
@@ -106,7 +74,7 @@ touch /userhome/test
 
 如其他节点能在/userhome下看见 test 文件则运行正常。
 
-#### <span id="head9"> 2.数据集制作</span>
+# 2. 数据集准备
 
 **数据集下载**
 
@@ -123,6 +91,7 @@ cd  /userhome/AIPerf/scripts/build_data
 
 - ILSVRC2012_img_val.tar
 - ILSVRC2012_img_train.tar
+
 
 **TFReord制作**
 
@@ -146,25 +115,38 @@ tar -xvf imagenet/ILSVRC2012_img_train.tar -C ILSVRC2012/raw-data/imagenet-data/
 find . -name "*.tar" | while read NAE ; do mkdir -p "${NAE%.tar}"; tar -xvf "${NAE}" -C "${NAE%.tar}"; rm -f "${NAE}"; done
 cd -
 
+# 请注意 如果您使用的框架非TensorFlow 则不需要下面制作TFRecord的步骤！
 # 执行转换
 mkdir -p ILSVRC2012/output
 python build_imagenet_data.py --train_directory=ILSVRC2012/raw-data/imagenet-data/train --validation_directory=ILSVRC2012/raw-data/imagenet-data/validation --output_directory=ILSVRC2012/output --imagenet_metadata_file=imagenet_metadata.txt --labels_file=imagenet_lsvrc_2015_synsets.txt
 ```
 
-上面步骤执行完后，路径ILSVRC2012/output包含128个validation开头的验证集文件和1024个train开头的训练集文件。需要分别将验证集和数据集移动到slave节点的物理机上
+对TensorFlow 上面步骤执行完后，路径ILSVRC2012/output包含128个validation开头的验证集文件和1024个train开头的训练集文件。需要分别将验证集和数据集移动到slave节点的物理机上
 
-```
+```shell
 mkdir -p /root/datasets/imagenet/train
 mkdir -p /root/datasets/imagenet/val
 mv ILSVRC2012/output/train-* /root/datasets/imagenet/train
 mv ILSVRC2012/output/validation-* /root/datasets/imagenet/val
 ```
 
-#### <span id="head7"> 3.安装依赖制作</span>
+对其他模型，分别将解压后验证集和数据集移动到slave节点的物理机上，这一部分可以根据框架需求自行调整
+
+```shell
+# 对 PyTorch
+mkdir -p /root/datasets/imagenet/
+mv ILSVRC2012/train /root/datasets/imagenet
+mv ILSVRC2012/val /root/datasets/imagenet
+```
+
+
+# 3. 安装项目依赖
 
 **配置python运行环境**
 
-*安装python3.5*
+请保证python版本，CUDA版本，计算框架版本的一致性，在这里，我们以`python3.6`, `CUDA10.1`, `tensorflow 2.2.0` 为例
+
+*安装python3.6*
 
 ```
 apt install --install-recommends python3 python3-dev python3-pip -y
@@ -193,8 +175,13 @@ pip3 install -r requirements.txt --timeout 3000
 
 *编译安装*
 
-```
-source install.sh
+```shell
+# 安装AutoML组件
+cd /userhome/AIPerf/src/sdk/pynni/
+pip3 install -e .
+# 安装aiperf控制组件
+cd /userhome/AIPerf/src/aiperf_manager/
+pip3 install -e .
 ```
 
 *检查AIPerf安装*
@@ -202,10 +189,26 @@ source install.sh
 执行
 
 ```
-nnictl --help
+aiperf --help
 ```
 
-如果打印帮助信息，则安装正常
+出现：
+```
+usage: aiperf [-h] [--version] {create} ...
+
+use aiperfctl command to control aiperf experiments
+
+positional arguments:
+  {create}
+    create       create a new experiment
+
+optional arguments:
+  -h, --help     show this help message and exit
+  --version, -v
+
+```
+
+表示安装成功
 
 **目录调整**
 
@@ -233,11 +236,13 @@ ln -s /userhome/nni /root/nni
 wget -P /userhome https://github.com/AI-HPC-Research-Team/Weight/releases/download/AIPerf1.0/resnet50_weights_tf_dim_ordering_tf_kernels.h5
 ```
 
-在共享目录下配置slave机的总数
+在共享目录下配置工作节点的总数
 
 ```shell
 echo 16 > /userhome/trial_concurrency.txt
 ```
+
+# 4. 启动测试
 
 **启动调度服务**
 
@@ -251,9 +256,15 @@ slave节点和调度服务通过http协议进行运行时信息交互，请在�
 python3 manage.py runserver 127.0.0.1:9987
 ```
 
+请调整`aiperf_ctrl/trial/views.py`下的相关语句, 包括：
+
+1. `sshKill` `sshExec` 中使用ssh下发命令的方式，使用密钥或者证书
+2. `sshKill` `sshExec` 中相关的代码路径 TODO: 改成自动监测
+3. `sshExec` 中加载环境的代码`module load ...`按需选择保留与修改
+
 并保持该服务一直运行
 
-### <span id="head10"> 二、Benchmark测试规范</span>
+**启动实验**
 
 为了使结果有效，测试满足的基本条件是：
 1. 测试运行时间应不少于1小时；
@@ -326,37 +337,15 @@ trial:
 
 在/userhome/AIPerf/examples/trials/network_morphism/imagenet/目录下执行以下命令运行用例
 
+注：若使用pyTorch，请在 /userhome/AIPerf/examples/trials/network_morphism/imagenetTorch/下执行
+
 ```
-nnictl create -c config.yml
+aiperf create -c config.yml
 ```
 
 **查看运行过程**
 
-执行以下命令查看正在运行的experiment的trial运行信息
-
-```
-nnictl top
-```
-
 当测试运行过程中，运行以下程序会在终端打印experiment的Error、Score、Regulated Score等信息
-
-```
-python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  
-```
-
-#### <span id="head13"> 停止实验</span>
-
-停止expriments, 执行
-
-```
-nnictl stop
-```
-
-通过命令squeue查看slurm中是否还有未被停止的job，如果存在job且ST列为CG，请等待作业结束，实验才算完全停止。
-
-**查看实验报告**
-
-当测试运行过程中（超过15mins），运行以下程序会在终端打印experiment的Error、Score、Regulated Score等信息
 
 ```
 python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  
@@ -370,6 +359,11 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID
 
 实验失败会报告失败原因，请查阅AI Benchmark测试规范分析失败原因
 
+#### <span id="head13"> 停止实验</span>
+
+停止expriments,  退出前台的aiperf进程即可
+
+
 **保存日志&结果数据**
 
 运行以下程序可将测试产生的日志以及数据统一保存到/userhome/mountdir/nni/experiments/experiment_ID/results/logs中，便于实验分析
@@ -380,9 +374,7 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs T
 
 由于实验数据在复制过程中会导致额外的网络、内存、cpu等资源开销，建议在实验停止/结束后再执行日志保存操作。
 
-
-
-### <span id="head14"> 三、测试参数设置及推荐环境配置</span>
+# 5. 测试参数设置及推荐环境配置
 
 #### <span id="head15"> 可变设置</span>
 
@@ -394,14 +386,7 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs T
 
 #### <span id="head16"> 推荐环境配置</span>
 
-- 环境：Ubuntu16.04，docker=18.09.9，SLURM=v15.08.7
+- 环境：Ubuntu16.04
 
-- 软件：TensorFlow2.2.0，CUDA10.1，python3.5
+- 软件：TensorFlow2.2.0，CUDA10.2，python3.6
 - Container：36个物理CPU核，512GB内存，8张GPU
-
-
-***NOTE: 推荐基于Intel Xeon Skylake Platinum8268 and NVIDIA Tesla NVLink v100配置***
-
-## <span id="head18"> 许可</span>
-
-基于 MIT license

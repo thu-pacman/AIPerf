@@ -202,9 +202,10 @@ def train_eval(args):
     loss_func = nn.CrossEntropyLoss()
 
     # train procedure
-    
+    # 传统数据集
     #train_datasets = datasets.ImageFolder(args.train_data_dir, transform=train_transforms)
     #train_dataloader = torch.utils.data.DataLoader(train_datasets, batch_size=args.batch_size, shuffle=True,num_workers=24,pin_memory=True)
+    # LMDB数据集
     train_datasets = ImageFolderLMDB(
         args.train_data_dir,
         train_transforms
