@@ -1,1 +1,1 @@
-python3.6 demo.py --train_data_dir /mnt/zoltan/public/dataset/rawdata/train/ --val_data_dir /mnt/zoltan/public/dataset/rawdata/val/ --batch_size 64 --epochs 10
+nvprof python3.6 demo.py --train_data_dir /mnt/zoltan/public/dataset/rawdata/train.lmdb --val_data_dir /mnt/zoltan/public/dataset/rawdata/val/ --batch_size 192 --epochs 1

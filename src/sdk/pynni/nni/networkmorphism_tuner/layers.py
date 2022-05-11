@@ -311,6 +311,7 @@ class StubConv(StubWeightBiasLayer):
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = int(self.kernel_size / 2)
+        # print("Conv kernel_size:{} stride:{} padding:{}".format(self.kernel_size, self.stride, self.padding))
 
     @property
     def output_shape(self):
@@ -382,6 +383,7 @@ class StubConv2d(StubConv):
             self.kernel_size,
             stride=self.stride,
             padding=self.padding,
+            bias=False
         )
 
 
@@ -567,7 +569,7 @@ class StubPooling2d(StubPooling):
     """
 
     def to_real_layer(self):
-        return torch.nn.MaxPool2d(self.kernel_size, stride=self.stride)
+        return torch.nn.MaxPool2d(self.kernel_size, stride=self.stride, padding=1)
 
 
 class StubPooling3d(StubPooling):

@@ -851,7 +851,10 @@ class TorchModel(torch.nn.Module):
                     )
                 else:
                     edge_input_tensor = node_list[u]
-
+                #if isinstance(layer, (StubAdd, StubAdd)):
+                #    temp_tensor = edge_input_tensor[0] + edge_input_tensor[1]
+                #else:
+                #    temp_tensor = torch_layer(edge_input_tensor)
                 temp_tensor = torch_layer(edge_input_tensor)
                 node_list[v] = temp_tensor
         return node_list[output_id]
