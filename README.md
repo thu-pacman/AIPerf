@@ -414,9 +414,13 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs T
 
 ***NOTE: 推荐基于Intel Xeon Skylake Platinum8268 and NVIDIA Tesla NVLink v100配置***
 
-## <span id="head17"> Benchmark报告反馈</span>
+# 6. 二次开发与迁移
 
-若测试中遇到问题，请联系renzhx@pcl.ac.cn，并附上`/userhome/mountdir/nni/experiments/experiment_ID/results/`中的html版报告。
+请参考[二次开发参考文档](./Migration.md)
+
+#  7. Benchmark报告反馈
+
+若测试中遇到问题，请联系zhaijidong@tsinghua.edu.cn，并附上`/userhome/mountdir/nni/experiments/experiment_ID/results/`中的html版报告。
 
 ## <span id="head18"> 许可</span>
 
