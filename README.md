@@ -1,3 +1,24 @@
+![](logo.JPG)
+
+![](logo_THU.jpg) ![](logo_PCL.jpg) 
+
+**<font size=4>开发单位：清华大学(THU)，鹏城实验室(PCL) </font>**
+
+**<font size=4>特别感谢国防科技大学窦勇老师及其团队的宝贵意见和支持</font>**
+
+
+
+
+# <span id="head1">AIPerf Benchmark v1.0</span>
+
+## <span id="head2"> Benchmark结构设计</span>
+
+**关于AIPerf设计理念，技术细节，以及测试结果，请参考论文：https://arxiv.org/abs/2008.07141** 
+
+AIPerf Benchmark基于微软NNI开源框架，以自动化机器学习（AutoML）为负载，使用network morphism进行网络结构搜索和TPE进行超参搜索。
+
+
+
 # 部署 AIPerf
 
 # 1. 环境NFS准备
@@ -390,3 +411,13 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs T
 
 - 软件：TensorFlow2.2.0，CUDA10.2，python3.6
 - Container：36个物理CPU核，512GB内存，8张GPU
+
+***NOTE: 推荐基于Intel Xeon Skylake Platinum8268 and NVIDIA Tesla NVLink v100配置***
+
+## <span id="head17"> Benchmark报告反馈</span>
+
+若测试中遇到问题，请联系renzhx@pcl.ac.cn，并附上`/userhome/mountdir/nni/experiments/experiment_ID/results/`中的html版报告。
+
+## <span id="head18"> 许可</span>
+
+基于 MIT license
