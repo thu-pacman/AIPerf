@@ -1,0 +1,11 @@
+src/nasui/build/
+src/webui/build/
+src/nasui/node_modules/
+src/webui/node_modules/
+src/nni_manager/node_modules/
+src/nni_manager/dist/
+
+**/__pycache__/
+**/build/
+**/.ipynb_checkpoints/
+**/nni_sdk.egg-info/

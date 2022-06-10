@@ -1,0 +1,11 @@
+Metadata-Version: 1.2
+Name: aiperf-tool
+Version: 999.0.0-developing
+Summary: AIPERF control
+Home-page: https://github.com/thu-pacman/AIPerf
+Author: thu-pacman
+Author-email: zhaijidong@tsinghua.edu.cn
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=3.5

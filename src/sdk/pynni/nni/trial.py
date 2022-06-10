@@ -66,8 +66,7 @@ def get_next_parameter(socket):
     if tuner.history:
         p0 = multiprocessing.Process(target= tuner.generate_parameters, args=(int(get_sequence_id()),))
         p0.start()
-        trial_concurrency = os.popen('cat /etc/slurm-llnl/slurm.conf|grep NodeName|wc -l')
-        trial_concurrency = int(trial_concurrency.read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
         if get_sequence_id() < trial_concurrency :
             lock.acquire()
             with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt", "a+") as f:

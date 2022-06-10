@@ -40,6 +40,8 @@ import utils
 import imagenet_preprocessing
 import dataset as ds
 
+print("gpu avail: ", tf.test.is_gpu_available())
+
 os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
 log_format = "%(asctime)s %(message)s"
@@ -53,7 +55,7 @@ logging.basicConfig(
 logger = logging.getLogger("Imagenet-network-morphism-tfkeras")
 
 config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
+# config.gpu_options.allow_growth = True
 
 # imagenet2012
 Ntrain = 1281167
@@ -365,6 +367,7 @@ if __name__ == "__main__":
                     json_father_id -= 1
                 else:
                     break
+        print("checkpoint 1")
         train_num = 0
         TPE = TPEtuner.HyperoptTuner('tpe')
         TPE.update_search_space(search_space)

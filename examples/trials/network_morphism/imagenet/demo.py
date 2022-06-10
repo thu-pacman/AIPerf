@@ -32,15 +32,13 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import SGD
 
-import nni
 from nni.networkmorphism_tuner.graph import json_to_graph
-import nni.hyperopt_tuner.hyperopt_tuner as TPEtuner
 
 import utils
 import imagenet_preprocessing
 import dataset as ds
 
-os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
+
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 log_format = "%(asctime)s %(message)s"
@@ -80,7 +78,8 @@ def get_args():
     parser.add_argument("--final_lr", type=float, default=0, help="final learning rate")
     parser.add_argument("--maxTPEsearchNum", type=int, default=2, help="max TPE search number")
     parser.add_argument("--smooth_factor", type=float, default=0.1, help="max TPE search number")
-    parser.add_argument("--num_parallel_calls", type=int, default=48, help="number of parallel call during data loading")
+    parser.add_argument("--num_parallel_calls", type=int, default=24, help="number of parallel call during data loading")
+    parser.add_argument("--no_mix_precision", action='store_true', default=False)
     return parser.parse_args()
 
 
@@ -109,7 +108,10 @@ def parse_rev_args(args):
     with mirrored_strategy.scope():
         net = build_graph_from_json()
         optimizer = SGD(lr=args.initial_lr, momentum=0.9, decay=1e-4)
-        optimizer = tf.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale=256)
+        if args.no_mix_precision:
+            pass
+        else:
+            optimizer = tf.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale=256)
         loss = tf.keras.losses.CategoricalCrossentropy(label_smoothing=args.smooth_factor)
 
         # Compile the model
@@ -145,7 +147,14 @@ def parse_rev_args(args):
 #         hp['finish_date'] = time.strftime('%m/%d/%Y, %H:%M:%S', time.localtime(time.time()))
 #         with open(self.hp_path, 'w') as f:
 #             json.dump(hp, f)
-
+class StopMetrics(tf.keras.callbacks.Callback):
+    def __init__(self):
+        super(StopMetrics, self).__init__()
+    
+    def on_batch_end(self, batch, logs):
+        # print("on_batch_end",batch)
+        if(batch==29):
+            exit(0)
 
 def train_eval(args):
     """ train and eval the model
@@ -196,17 +205,6 @@ def train_eval(args):
         dtype=tf.float32
     )
 
-    # run epochs and patience
-    loopnum = seqid // args.slave
-    patience = min(int(6 + (2 * loopnum)), 20)
-    if loopnum == 0:
-        run_epochs = int(args.warmup_1)
-    elif loopnum == 1:
-        run_epochs = int(args.warmup_2)
-    elif loopnum == 2:
-        run_epochs = int(args.warmup_3)
-    else:
-        run_epochs = int(args.epochs)
     
     # if loopnum < 4:
     #     patience = int(8 + (2 * loopnum))
@@ -239,12 +237,12 @@ def train_eval(args):
     #     save_freq='epoch',
     #     save_weights_only=True,
     # )
-    x_train = np.random.rand(10000,224,224,3)
-    y_train = 0 * np.random.rand(10000,1000)
-    x_test = np.random.rand(1000,224,224,3)
-    y_test = 0 * np.random.rand(1000,1000)
+    #x_train = np.random.rand(10000,224,224,3)
+    #y_train = 0 * np.random.rand(10000,1000)
+    #x_test = np.random.rand(1000,224,224,3)
+    #y_test = 0 * np.random.rand(1000,1000)
 
-    history = net.fit(x_train, y_train, batch_size=448, epochs=10, validation_data=(x_test, y_test), shuffle=True)
+    #history = net.fit(x_train, y_train, batch_size=448, epochs=10, validation_data=(x_test, y_test), shuffle=True)
 
     history = net.fit(
         ds_train,
@@ -255,6 +253,7 @@ def train_eval(args):
         verbose=1,
         shuffle=False,
         callbacks=[#SendMetrics(hp_path),
+                   StopMetrics(),
                    callback,
                    #EarlyStopping(min_delta=0.001, patience=patience),
                    #model_checkpoint_callback
@@ -265,6 +264,10 @@ if __name__ == "__main__":
     example_start_time = time.time()
     net = None
     args = get_args()
+    if args.no_mix_precision:
+        os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '0'
+    else:
+        os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
     train_eval(args)
     

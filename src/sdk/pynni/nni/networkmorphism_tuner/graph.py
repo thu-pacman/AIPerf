@@ -851,7 +851,10 @@ class TorchModel(torch.nn.Module):
                     )
                 else:
                     edge_input_tensor = node_list[u]
-
+                #if isinstance(layer, (StubAdd, StubAdd)):
+                #    temp_tensor = edge_input_tensor[0] + edge_input_tensor[1]
+                #else:
+                #    temp_tensor = torch_layer(edge_input_tensor)
                 temp_tensor = torch_layer(edge_input_tensor)
                 node_list[v] = temp_tensor
         return node_list[output_id]
@@ -967,7 +970,7 @@ class TfModel:
         self.count = 0
         self.loadh5 = 0
         try:
-            with h5py.File("/userhome/resnet50_weights_tf_dim_ordering_tf_kernels.h5", 'r') as f:
+            with h5py.File("/mnt/zoltan/public/dataset/resnet50_weights_tf_dim_ordering_tf_kernels.h5", 'r') as f:
                 layer_names = self.load_attributes_from_hdf5_group(f, 'layer_names')
                 filtered_layer_names = []
                 for name in layer_names:
@@ -1011,11 +1014,6 @@ class TfModel:
                     [n.decode('utf8') for n in group.attrs['%s%d' % (name, chunk_id)]])
                 chunk_id += 1
         return data
-
-class ONNXModel:
-    # to do in the future using onnx ir
-    def __init__(self, graph):
-        pass
 
 
 class JSONModel:

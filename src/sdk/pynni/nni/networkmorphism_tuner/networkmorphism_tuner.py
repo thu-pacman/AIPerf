@@ -24,6 +24,8 @@
 import logging
 import os
 
+import logging
+
 
 from nni.tuner import Tuner
 from nni.utils import OptimizeMode, extract_scalar_reward
@@ -259,11 +261,8 @@ class NetworkMorphismTuner(Tuner):
 
     def init_search(self):
         """Call the generators to generate the initial architectures for the search."""
-        #if self.verbose:
-        #    logger.info("Initializing search.")
         import yaml
-        trial_concurrency = os.popen('cat /etc/slurm-llnl/slurm.conf|grep NodeName|wc -l')
-        trial_concurrency = int(trial_concurrency.read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
         if trial_concurrency > self.model_count: #判断当前训练的trial是否已超过第一轮trials
             #若没有超过第一轮trial，则判断当前的trial是否超过预生成的模型序列，若未超过，则正常设置num=count
             # if  len(self.init_model_dir) > self.model_count:
@@ -341,8 +340,7 @@ class NetworkMorphismTuner(Tuner):
         father_id = other_info
         t1 = time.time()
         self.bo.fit([graph.extract_descriptor()], [metric_value])
-        trial_concurrency = os.popen('cat /etc/slurm-llnl/slurm.conf|grep NodeName|wc -l')
-        trial_concurrency = int(trial_concurrency.read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
         if model_id >= trial_concurrency :
             self.bo.add_child(father_id, model_id)
         ret_tree=self.bo.search_tree.get_dict(0)
@@ -362,13 +360,10 @@ class NetworkMorphismTuner(Tuner):
         -------
         model : dict
         """
-        if self.verbose:
-            logger.info("Saving model.")
-
+        
         # Update best_model text file
         ret = {"model_id": model_id, "metric_value": metric_value}
-        trial_concurrency = os.popen('cat /etc/slurm-llnl/slurm.conf|grep NodeName|wc -l')
-        trial_concurrency = int(trial_concurrency.read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
         if model_id < trial_concurrency:
             for i in range(len(self.history)):
                 if self.history[i]['model_id'] == model_id:

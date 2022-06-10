@@ -1,0 +1,3 @@
+[console_scripts]
+aiperf = aiperf_cmd.aiperfctl:parse_args
+

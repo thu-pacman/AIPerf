@@ -1,8 +1,8 @@
-![](https://github.com/AI-HPC-Research-Team/AIPerf/blob/master/logo.JPG)
+![](logo.JPG)
 
-![](https://github.com/AI-HPC-Research-Team/AIPerf/blob/master/logo_PCL.jpg) ![](https://github.com/AI-HPC-Research-Team/AIPerf/blob/master/logo_THU.jpg)
+![](logo_THU.jpg) ![](logo_PCL.jpg) 
 
-**<font size=4>开发单位：鹏城实验室(PCL)，清华大学(THU)</font>**
+**<font size=4>开发单位：清华大学(THU)，鹏城实验室(PCL) </font>**
 
 **<font size=4>特别感谢国防科技大学窦勇老师及其团队的宝贵意见和支持</font>**
 
@@ -19,21 +19,9 @@ AIPerf Benchmark基于微软NNI开源框架，以自动化机器学习（AutoML�
 
 
 
-## <span id="head3"> Benchmark安装说明</span>
+# 部署 AIPerf
 
- **本文用于在容器环境下运行Benchmark**
-
-### <span id="head5"> 一、Benchmark环境配置、安装要求</span>
-
-*(本文档默认物理机环境已经安装docker、nvidia-docker)*
-
-Benchmark运行环境由Master节点-Slaves节点组成，其中Mater节点不参与调度不需要配置GPU/加速卡，Slave节点可配置多块加速卡。
-
-#### <span id="head6"> 1.物理机环境配置</span>
-
-(物理机执行：默认root用户操作)
-
-**配置共享文件系统**
+# 1. 环境NFS准备
 
 配置共享文件系统需要在物理机环境中进行，若集群环境中已有共享文件系统则跳过配置共享文件系统的步骤,若无共享文件系统，则需配置共享文件系统。
 
@@ -107,9 +95,7 @@ touch /userhome/test
 
 如其他节点能在/userhome下看见 test 文件则运行正常。
 
-#### <span id="head9"> 2.数据集制作</span>
-
-制作数据集建议在已做好容器内操作，里面包含了制作数据集需要的基本环境。
+# 2. 数据集准备
 
 **数据集下载**
 
@@ -126,6 +112,7 @@ cd  /userhome/AIPerf/scripts/build_data
 
 - ILSVRC2012_img_val.tar
 - ILSVRC2012_img_train.tar
+
 
 **TFReord制作**
 
@@ -149,100 +136,38 @@ tar -xvf imagenet/ILSVRC2012_img_train.tar -C ILSVRC2012/raw-data/imagenet-data/
 find . -name "*.tar" | while read NAE ; do mkdir -p "${NAE%.tar}"; tar -xvf "${NAE}" -C "${NAE%.tar}"; rm -f "${NAE}"; done
 cd -
 
+# 请注意 如果您使用的框架非TensorFlow 则不需要下面制作TFRecord的步骤！
 # 执行转换
 mkdir -p ILSVRC2012/output
 python build_imagenet_data.py --train_directory=ILSVRC2012/raw-data/imagenet-data/train --validation_directory=ILSVRC2012/raw-data/imagenet-data/validation --output_directory=ILSVRC2012/output --imagenet_metadata_file=imagenet_metadata.txt --labels_file=imagenet_lsvrc_2015_synsets.txt
 ```
 
-上面步骤执行完后，路径ILSVRC2012/output包含128个validation开头的验证集文件和1024个train开头的训练集文件。需要分别将验证集和数据集移动到slave节点的物理机上
+对TensorFlow 上面步骤执行完后，路径ILSVRC2012/output包含128个validation开头的验证集文件和1024个train开头的训练集文件。需要分别将验证集和数据集移动到slave节点的物理机上
 
-```
+```shell
 mkdir -p /root/datasets/imagenet/train
 mkdir -p /root/datasets/imagenet/val
 mv ILSVRC2012/output/train-* /root/datasets/imagenet/train
 mv ILSVRC2012/output/validation-* /root/datasets/imagenet/val
 ```
 
-#### <span id="head7"> 3.容器制作</span>
+对其他模型，分别将解压后验证集和数据集移动到slave节点的物理机上，这一部分可以根据框架需求自行调整
 
-(容器内执行)
-
-**物理机下载基础镜像**
-
-针对NVIDIA V100
-```
-docker pull nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
-```
-针对NVIDIA A100
-```
-docker pull nvidia/cuda:11.1-cudnn8-devel-ubuntu16.04
+```shell
+# 对 PyTorch
+mkdir -p /root/datasets/imagenet/
+mv ILSVRC2012/train /root/datasets/imagenet
+mv ILSVRC2012/val /root/datasets/imagenet
 ```
 
-**启动容器**
 
-针对NVIDIA V100
-```
-nvidia-docker run -it --name build_AIPerf -v /userhome:/userhome -v /root/dataset:root/dataset nvidia/cuda:10.1-cudnn7-devel-ubuntu16.04
-```
-针对NVIDIA A100
-```
-nvidia-docker run -it --name build_AIPerf -v /userhome:/userhome -v /root/dataset:root/dataset nvidia/cuda:11.1-cudnn8-devel-ubuntu16.04
-```
-
-**安装基础工具**
-
-```
-apt update && apt install git vim cmake make openssh-client openssh-server wget tzdata  curl sshpass -y
-```
-
-*配置ssh-server*
-
-开启ssh root登录权限,修改ssh配置文件 /etc/ssh/sshd_config
-
-```
-vim /etc/ssh/sshd_config
-```
-
-找到PermitRootLogin prohibit-password所在行，并修改为
-
-```
-PermitRootLogin yes
-```
-
-避免和物理机端口冲突，打开配置文件 /etc/ssh/sshd_config，修改ssh端口22为222
-
-```
-port 222
-```
-
-*为root用户设置密码*
-
-```
-passwd
-```
-
-密码设置为123123
-
-*配置时区*
-
-```
-dpkg-reconfigure tzdata
-```
-
-选择Asia -> Shanghai
-
-*配置中文支持和环境变量*
-
-在/etc/bash.bashrc最后添加
-
-```
-export LANG=C.UTF-8
-export TF_XLA_FLAGS="--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
-```
+# 3. 安装项目依赖
 
 **配置python运行环境**
 
-*安装python3.5*
+请保证python版本，CUDA版本，计算框架版本的一致性，在这里，我们以`python3.6`, `CUDA10.1`, `tensorflow 2.2.0` 为例
+
+*安装python3.6*
 
 ```
 apt install --install-recommends python3 python3-dev python3-pip -y
@@ -271,8 +196,13 @@ pip3 install -r requirements.txt --timeout 3000
 
 *编译安装*
 
-```
-source install.sh
+```shell
+# 安装AutoML组件
+cd /userhome/AIPerf/src/sdk/pynni/
+pip3 install -e .
+# 安装aiperf控制组件
+cd /userhome/AIPerf/src/aiperf_manager/
+pip3 install -e .
 ```
 
 *检查AIPerf安装*
@@ -280,16 +210,26 @@ source install.sh
 执行
 
 ```
-nnictl --help
+aiperf --help
 ```
 
-如果打印帮助信息，则安装正常
+出现：
+```
+usage: aiperf [-h] [--version] {create} ...
 
-**安装slurm**
+use aiperfctl command to control aiperf experiments
+
+positional arguments:
+  {create}
+    create       create a new experiment
+
+optional arguments:
+  -h, --help     show this help message and exit
+  --version, -v
 
 ```
-apt install munge slurm-llnl -y
-```
+
+表示安装成功
 
 **目录调整**
 
@@ -317,93 +257,35 @@ ln -s /userhome/nni /root/nni
 wget -P /userhome https://github.com/AI-HPC-Research-Team/Weight/releases/download/AIPerf1.0/resnet50_weights_tf_dim_ordering_tf_kernels.h5
 ```
 
+在共享目录下配置工作节点的总数
 
-#### <span id="head8"> 4.容器部署</span>
-
-(物理机执行)
-
-**提交容器为镜像**
-
-```
-sudo docker commit build_AIPerf aiperf:latest
+```shell
+echo 16 > /userhome/trial_concurrency.txt
 ```
 
-**导出镜像**
+# 4. 启动测试
 
-将容器导出到之前创建好的共享目录/userhome，方便其它节点导入
+**启动调度服务**
 
-```
-sudo docker save -o /userhome/AIPerf.tar aiperf:latest
-```
+进入 aiperf_ctrl服务，配置 servers.json ，每张计算卡的描述包括`ip`和`CUDA_VISIBLE_DEVICES`两部分，应保证servers.json的list的长度恰好等于等待测试的计算卡总数，也等于之前填写的trial_concurrency.txt内的数字
 
-**导入镜像**
+slave节点和调度服务通过http协议进行运行时信息交互，请在全文搜索四处`255.255.255.255`，并替换为本机的IP地址
 
-参与实验的所有节点导入镜像，由于镜像需要通过NFS传输到其他节点，需要一些时间
+例如，本机的ip地址为127.0.0.1，请在aiperf_ctrl下执行
 
-```
-sudo docker load -i /userhome/AIPerf.tar
+```python3
+python3 manage.py runserver 127.0.0.1:9987
 ```
 
-**运行容器**
+请调整`aiperf_ctrl/trial/views.py`下的相关语句, 包括：
 
-参与实验的所有节点运行容器
+1. `sshKill` `sshExec` 中使用ssh下发命令的方式，使用密钥或者证书
+2. `sshKill` `sshExec` 中相关的代码路径 TODO: 改成自动监测
+3. `sshExec` 中加载环境的代码`module load ...`按需选择保留与修改
 
-```
-sudo nvidia-docker run -it --net=host -v /userhome:/userhome -v /root/dataset:root/dataset aiperf:latest
-```
+并保持该服务一直运行
 
-**配置容器**
-
-(容器内操作)
-
-*所有节点容器重启ssh服务*
-
-```
-service ssh restart
-```
-
-*配置slurm*
-
-以下操作在master节点进行，slurm将获取所有slave节点中cpu核数最低的节点的核数，并将该核数配置为每个slave节点的最高可用核数，而并非每个节点各自的实际核数。
-
-进入/userhome/AIPerf/scripts/autoconfig_slurm目录
-
-```
-cd /userhome/AIPerf/scripts/autoconfig_slurm
-```
-
-*进行ip地址配置*
-
-1. 将所有slave节点ip按行写入slaveip.txt。
-2. 将master节点ip写入masterip.txt。
-3. 确保所有节点的ssh用户、密码、端口是一致的，并根据自身情况修改 slurm_autoconfig.sh脚本中的用户名和密码。
-
-*运行自动配置脚本*
-
-```
-bash slurm_autoconfig.sh
-```
-
-slurm配置完成后会提示当前所有节点最高可用核数并给出后续config.yml中slurm的运行参数`srun --cpus-per-task=xx`
-
-*检查slurm*
-
-执行命令查看所有节点状态
-
-```
-sinfo
-```
-
-如果所有节点STATE列为idle则slurm配置正确，运行正常。
-
-如果STATE列为unk，等待一会再执行sinfo查看，如果都为idle，则slurm配置正确，运行正常。
-
-如果STATE列的状态后面带*则该节点网络出现问题master无法访问到该节点。
-
-
-
-
-### <span id="head10"> 二、Benchmark测试规范</span>
+**启动实验**
 
 为了使结果有效，测试满足的基本条件是：
 1. 测试运行时间应不少于1小时；
@@ -457,9 +339,8 @@ tuner:
   
 trial:
  command: CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7  \                                  # 3
-       srun -N 1 -n 1 --ntasks-per-node=1 \
-       --cpus-per-task=30 \	  # 4
-       python3 imagenet_tfkeras_slurm_hpo.py \
+       /GPUFS/thu_wgchen_2/aiperf/AIPerf-wxp/submitter.py \ # 请修改为正确的submitter 地址
+       python3 imagenet_train.py \
        --slave 1 \								  # 5
        --ip 127.0.0.1 \							  # 6
        --batch_size 448 \						  # 7
@@ -477,37 +358,15 @@ trial:
 
 在/userhome/AIPerf/examples/trials/network_morphism/imagenet/目录下执行以下命令运行用例
 
+注：若使用pyTorch，请在 /userhome/AIPerf/examples/trials/network_morphism/imagenetTorch/下执行
+
 ```
-nnictl create -c config.yml
+aiperf create -c config.yml
 ```
 
 **查看运行过程**
 
-执行以下命令查看正在运行的experiment的trial运行信息
-
-```
-nnictl top
-```
-
 当测试运行过程中，运行以下程序会在终端打印experiment的Error、Score、Regulated Score等信息
-
-```
-python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  
-```
-
-#### <span id="head13"> 停止实验</span>
-
-停止expriments, 执行
-
-```
-nnictl stop
-```
-
-通过命令squeue查看slurm中是否还有未被停止的job，如果存在job且ST列为CG，请等待作业结束，实验才算完全停止。
-
-**查看实验报告**
-
-当测试运行过程中（超过15mins），运行以下程序会在终端打印experiment的Error、Score、Regulated Score等信息
 
 ```
 python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  
@@ -521,6 +380,11 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID
 
 实验失败会报告失败原因，请查阅AI Benchmark测试规范分析失败原因
 
+#### <span id="head13"> 停止实验</span>
+
+停止expriments,  退出前台的aiperf进程即可
+
+
 **保存日志&结果数据**
 
 运行以下程序可将测试产生的日志以及数据统一保存到/userhome/mountdir/nni/experiments/experiment_ID/results/logs中，便于实验分析
@@ -531,9 +395,7 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs T
 
 由于实验数据在复制过程中会导致额外的网络、内存、cpu等资源开销，建议在实验停止/结束后再执行日志保存操作。
 
-
-
-### <span id="head14"> 三、测试参数设置及推荐环境配置</span>
+# 5. 测试参数设置及推荐环境配置
 
 #### <span id="head15"> 可变设置</span>
 
@@ -545,21 +407,20 @@ python3 /userhome/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs T
 
 #### <span id="head16"> 推荐环境配置</span>
 
-- 环境：Ubuntu16.04，docker=18.09.9，SLURM=v15.08.7
+- 环境：Ubuntu16.04
 
-- 软件：TensorFlow2.2.0，CUDA10.1，python3.5
+- 软件：TensorFlow2.2.0，CUDA10.2，python3.6
 - Container：36个物理CPU核，512GB内存，8张GPU
-
 
 ***NOTE: 推荐基于Intel Xeon Skylake Platinum8268 and NVIDIA Tesla NVLink v100配置***
 
+# 6. 二次开发与迁移
 
+请参考[二次开发参考文档](./Migration.md)
 
+#  7. Benchmark报告反馈
 
-
-## <span id="head17"> Benchmark报告反馈</span>
-
-若测试中遇到问题，请联系renzhx@pcl.ac.cn，并附上`/userhome/mountdir/nni/experiments/experiment_ID/results/`中的html版报告。
+若测试中遇到问题，请联系zhaijidong@tsinghua.edu.cn，并附上`/userhome/mountdir/nni/experiments/experiment_ID/results/`中的html版报告。
 
 ## <span id="head18"> 许可</span>
 

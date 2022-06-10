@@ -1,0 +1,1 @@
+nvprof python3.6 demo.py --train_data_dir /mnt/zoltan/public/dataset/final/train/ --val_data_dir /mnt/zoltan/public/dataset/final/val/ --batch_size 128 --epochs 1

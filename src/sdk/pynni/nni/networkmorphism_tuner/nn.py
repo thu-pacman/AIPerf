@@ -30,7 +30,6 @@ class NetworkGenerator:
     def generate(self, model_len, model_width):
         pass
 
-
 class CnnGenerator(NetworkGenerator):
     """A class to generate CNN.
     Attributes:
@@ -120,7 +119,6 @@ class CnnGenerator(NetworkGenerator):
         Returns:
             An instance of the class Graph. Represents the neural architecture graph of the generated model.
         """
-
         if model_len is None:
             model_len = Constant.MODEL_LEN
         if model_width is None:
@@ -138,7 +136,8 @@ class CnnGenerator(NetworkGenerator):
                 temp_input_channel,
                 64,
                 kernel_size=7,
-                stride=2),
+                stride=2,
+                padding=3),
             output_node_id
         )
         output_node_id = graph.add_layer(
