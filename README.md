@@ -160,6 +160,8 @@ mv ILSVRC2012/train /root/datasets/imagenet
 mv ILSVRC2012/val /root/datasets/imagenet
 ```
 
+**为了使读数据不成为训练瓶颈，有条件的集群最好能够将数据放在每台机器的本地存储（而不是共享存储）并在训练时从本地存储读数据**
+
 
 # 3. 安装项目依赖
 
