@@ -2,6 +2,23 @@ from django.http import JsonResponse
 import json
 import os
 
+# 自定义配置部分
+
+# 工作根目录
+HOMEPATH = os.environ.get("HOME","/")
+
+# 环境加载目录，根据实际环境调整
+ENV_CMD = (
+    "source /usr/local/Modules/init/bash\n"+ 
+    "module load cuda-10.2/cuda cuda-10.2/cudnn-7.6.5\n"+
+    "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HOMEPATH}\n"
+)
+
+# ssh 用户用户名
+SSH_USERNAME = "wxp"
+
+# 自定义配置部分结束
+
 SERVER_LIST = []
 
 SERVER_LIST=json.loads(open("servers.json","r").read())
@@ -9,6 +26,8 @@ SERVER_LIST=json.loads(open("servers.json","r").read())
 TRIAL_LIST = []
 
 TRIAL_LIST=json.loads(open("trial.json","r").read())
+
+
 
 def create_trial(request):
     global SERVER_LIST, TRIAL_LIST
@@ -140,20 +159,20 @@ def stop_all(request):
 
 def sshKill():
     global SERVER_LIST, TRIAL_LIST
+    
     for server in SERVER_LIST:
         #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} cp /mnt/zoltan/public/dataset/imagenet/aiperf_ctrl/kill.sh /root".format(server["ip"]))
         #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /root; bash kill.sh &'".format(server["ip"]))
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 wxp@{} cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/kill.sh /home/wxp".format(server["ip"]))
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 wxp@{} 'cd /home/wxp; bash kill.sh &'".format(server["ip"]))
+        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/kill.sh {}".format(SSH_USERNAME, server["ip"], HOMEPATH))
+        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} 'cd {}; bash kill.sh &'".format(SSH_USERNAME, server["ip"], HOMEPATH))
     return
     
 
 def sshExec(server, trial):
     global SERVER_LIST, TRIAL_LIST
     bashCmd = (
-        "#!/bin/bash -l\nsource /usr/local/Modules/init/bash\n"+ 
-        "module load cuda-10.2/cuda cuda-10.2/cudnn-7.6.5\n"+
-        "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/home/wxp\n"
+        "#!/bin/bash -l\n"+
+        ENV_CMD
     )
 
     bashCmd += "cd '/mnt/zoltan/public/dataset/imagenet/AIPerf/examples/trials/network_morphism/imagenet/.'\n"
@@ -184,11 +203,14 @@ def sshExec(server, trial):
     #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /imagenet/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(server["ip"], trial["env"]["NNI_EXP_ID"]) )
     #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} cp /imagenet/aiperf_ctrl/tmp.sh /root".format(server["ip"]))
     #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /root; bash tmp.sh >stdout.log 2>stderr.log &'".format(server["ip"]))
-    os.system("ssh -o ConnectTimeout=10 wxp@{} 'cd /mnt/zoltan/public/dataset/imagenet/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(server["ip"], trial["env"]["NNI_EXP_ID"]) )
-    os.system("ssh -o ConnectTimeout=10 wxp@{} 'mkdir /home/wxp/aiperflog/{} ; cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/tmp.sh /home/wxp/aiperflog/{}'".format(
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'cd /mnt/zoltan/public/dataset/imagenet/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(SSH_USERNAME, server["ip"], trial["env"]["NNI_EXP_ID"]) )
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'mkdir {}/aiperflog/{} ; cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/tmp.sh {}/aiperflog/{}'".format(
+        SSH_USERNAME, 
         server["ip"], 
+        HOMEPATH,
         trial["env"]["NNI_TRIAL_JOB_ID"],
+        HOMEPATH,
         trial["env"]["NNI_TRIAL_JOB_ID"]
     ))
-    os.system("ssh -o ConnectTimeout=10 wxp@{} 'cd /home/wxp/aiperflog/{}; source tmp.sh >stdout.log 2>stderr.log &'".format(server["ip"], trial["env"]["NNI_TRIAL_JOB_ID"]))
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'cd {}/aiperflog/{}; source tmp.sh >stdout.log 2>stderr.log &'".format(SSH_USERNAME,server["ip"], HOMEPATH, trial["env"]["NNI_TRIAL_JOB_ID"]))
     return
