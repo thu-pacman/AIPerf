@@ -182,10 +182,10 @@ class NetworkMorphismTuner(Tuner):
         total_start=time.time()
         rate = 1
 
-        if (os.path.exists(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time") and os.path.exists(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/train_time")):
-            with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time", "r") as f:
+        if (os.path.exists(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time") and os.path.exists(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/train_time")):
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time", "r") as f:
                 generate_time = float(f.read())
-            with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/train_time", "r") as f:
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/train_time", "r") as f:
                 train_time = float(f.read())
             if (generate_time != 0) and (train_time != 0):
                 realrate = int(train_time / generate_time)
@@ -215,15 +215,15 @@ class NetworkMorphismTuner(Tuner):
         #self.total_data[parameter_id] = (json_out, father_id, model_id)
             json_and_id="json_out="+str(json_out)+"+father_id="+str(father_id)+"+parameter_id="+str(parameter_id)+"+history="+"True"
             lock.acquire()
-            with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
                 f.write("single_generate=" + str(end - start)+"\n")
 
-            with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+") as f:
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+") as f:
                 f.write(json_and_id+"\n")
             lock.release()
         total_end=time.time()
         lock.acquire()
-        with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
+        with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
             f.write("total_generate=" + str(total_end - total_start)+"\n")
         lock.release()
 
@@ -231,7 +231,7 @@ class NetworkMorphismTuner(Tuner):
         if totime<0:
             totime = 0-totime
 
-        with open (os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time","w+") as f:
+        with open (os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time","w+") as f:
             gt = totime/rate
             f.write(str(gt))
 
@@ -262,7 +262,7 @@ class NetworkMorphismTuner(Tuner):
     def init_search(self):
         """Call the generators to generate the initial architectures for the search."""
         import yaml
-        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['AIPERF_WORKDIR']+'/trial_concurrency.txt').read().strip())
         if trial_concurrency > self.model_count: #判断当前训练的trial是否已超过第一轮trials
             #若没有超过第一轮trial，则判断当前的trial是否超过预生成的模型序列，若未超过，则正常设置num=count
             # if  len(self.init_model_dir) > self.model_count:
@@ -340,7 +340,7 @@ class NetworkMorphismTuner(Tuner):
         father_id = other_info
         t1 = time.time()
         self.bo.fit([graph.extract_descriptor()], [metric_value])
-        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['AIPERF_WORKDIR']+'/trial_concurrency.txt').read().strip())
         if model_id >= trial_concurrency :
             self.bo.add_child(father_id, model_id)
         ret_tree=self.bo.search_tree.get_dict(0)
@@ -363,7 +363,7 @@ class NetworkMorphismTuner(Tuner):
         
         # Update best_model text file
         ret = {"model_id": model_id, "metric_value": metric_value}
-        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['AIPERF_WORKDIR']+'/trial_concurrency.txt').read().strip())
         if model_id < trial_concurrency:
             for i in range(len(self.history)):
                 if self.history[i]['model_id'] == model_id:

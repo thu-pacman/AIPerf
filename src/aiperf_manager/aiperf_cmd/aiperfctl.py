@@ -175,8 +175,8 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     logger.info("launch_experiment")
     # 0. warm up
     try :
-        os.mkdir(os.environ["HOME"]+"/nni")
-        os.mkdir(os.environ["HOME"]+"/nni/experiments")
+        os.mkdir(os.environ["AIPERF_WORKDIR"]+"/nni")
+        os.mkdir(os.environ["AIPERF_WORKDIR"]+"/nni/experiments")
     except:
         pass
     nni_config = Config(config_file_name)
@@ -189,7 +189,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     )
 
     NNI_EXP_ID = "".join(random.sample(string.ascii_letters + string.digits, 8))
-    NNI_EXP_DIR = os.environ["HOME"]+"/nni/experiments/"+NNI_EXP_ID
+    NNI_EXP_DIR = os.environ["AIPERF_WORKDIR"]+"/nni/experiments/"+NNI_EXP_ID
     NNI_EXP_LOG_DIR = NNI_EXP_DIR + "/log"
     NNI_TRIALS_DIR = NNI_EXP_DIR + "/trials"
     NNI_CKPT_DIR = NNI_EXP_DIR + "/checkpoint"
@@ -198,7 +198,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     os.mkdir(NNI_TRIALS_DIR)
     os.mkdir(NNI_CKPT_DIR)
 
-    NNI_WORK_DIR = os.environ["HOME"]+"/mountdir/nni/experiments/"+NNI_EXP_ID
+    NNI_WORK_DIR = os.environ["AIPERF_WORKDIR"]+"/mountdir/nni/experiments/"+NNI_EXP_ID
     os.mkdir(NNI_WORK_DIR)
 
     logger.info("NNI_EXP_ID: {}".format(NNI_EXP_ID))
@@ -209,6 +209,9 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     # 2. 开一个trial poll 然后开始跑
     next_trial_seq_id = 0
     trial_concurrency = experiment_config["trialConcurrency"]
+    # 创建必要的文件
+    with open("{}/trial_concurrency.txt", "w") as f:
+        f.write(str(trial_concurrency))
     gen_cmd = (
         "GE" + 
         "0"*(6-len(str(len(str(trial_concurrency))))) +
@@ -355,7 +358,7 @@ def parse_args():
     # parse start command
     parser_start = subparsers.add_parser('create', help='create a new experiment')
     parser_start.add_argument('--config', '-c', required=True, dest='config', help='the path of yaml config file')
-    parser_start.add_argument('--server', '-s', required=True, dest='server', help='control server, http://0.0.0.0:9987')
+    parser_start.add_argument('--server', '-s', required=True, dest='server', help='control server, http://0.0.0.0:9987', default="http://{}:{}".format(os.environ['AIPERF_MASTER_IP'], os.environ['AIPERF_MASTER_PORT']))
     parser_start.add_argument('--debug', '-d', action='store_true', help=' set debug mode')
     parser_start.set_defaults(func=create_experiment)
 

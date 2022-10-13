@@ -66,10 +66,10 @@ def get_next_parameter(socket):
     if tuner.history:
         p0 = multiprocessing.Process(target= tuner.generate_parameters, args=(int(get_sequence_id()),))
         p0.start()
-        trial_concurrency = int(os.popen('cat '+os.environ['HOME']+'/trial_concurrency.txt').read().strip())
+        trial_concurrency = int(os.popen('cat '+os.environ['AIPERF_WORKDIR']+'/trial_concurrency.txt').read().strip())
         if get_sequence_id() < trial_concurrency :
             lock.acquire()
-            with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt", "a+") as f:
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt", "a+") as f:
                 json_and_id = 'json_out=' + str(_params['parameters']) + '+history' + "=False or True?"
                 f.write(json_and_id + "\n")
             lock.release()
@@ -77,10 +77,10 @@ def get_next_parameter(socket):
         socket.send_pyobj({"type": "generated_parameter"})
         message = socket.recv_pyobj()
         lock.acquire()
-        with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
+        with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
             f.write(" generate=" + str(end-start)+"\n")
 
-        with open(os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+") as f:
+        with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+") as f:
             json_and_id='json_out='+str(_params['parameters'])+'+history'+"=False"
             f.write(json_and_id+"\n")
         lock.release()

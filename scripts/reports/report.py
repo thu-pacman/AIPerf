@@ -82,7 +82,7 @@ def main(args, save_folder):
 
 if __name__=='__main__':
     args = get_args()
-    save_path = os.path.join(os.environ["HOME"], "mountdir/nni/experiments/")
+    save_path = os.path.join(os.environ["AIPERF_WORKDIR"], "mountdir/nni/experiments/")
     save_path = os.path.join(save_path, args.id)
     save_folder = os.path.join(save_path, 'results')
     if not os.path.exists(save_folder):

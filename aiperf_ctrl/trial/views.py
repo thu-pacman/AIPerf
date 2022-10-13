@@ -2,22 +2,39 @@ from django.http import JsonResponse
 import json
 import os
 
-# 自定义配置部分
 
-# 工作根目录
-HOMEPATH = os.environ.get("HOME","/")
+# 自定义配置部分开始
+# 环境加载，根据实际环境调整
+ENV_CMD = [
+    "source /usr/local/Modules/init/bash",
+    "module load cuda-10.2/cuda cuda-10.2/cudnn-7.6.5",
+]
+# 自定义配置部分结束
 
-# 环境加载目录，根据实际环境调整
-ENV_CMD = (
-    "source /usr/local/Modules/init/bash\n"+ 
-    "module load cuda-10.2/cuda cuda-10.2/cudnn-7.6.5\n"+
-    "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HOMEPATH}\n"
-)
+
+
+
+
+
+# 总工作目录
+AIPERF_WORKDIR = os.environ['AIPERF_WORKDIR']
+# 计算节点工作目录
+AIPERF_SLAVE_WORKDIR = os.environ['AIPERF_SLAVE_WORKDIR']
+# master节点ip与port
+AIPERF_MASTER_IP = os.environ['AIPERF_MASTER_IP']
+AIPERF_MASTER_PORT = os.environ['AIPERF_MASTER_PORT']
+
+ENV_CMD += [
+    "export AIPERF_WORKDIR={}".format(AIPERF_WORKDIR),
+    "export AIPERF_SLAVE_WORKDIR={}".format(AIPERF_SLAVE_WORKDIR),
+    "export AIPERF_MASTER_IP={}".format(AIPERF_MASTER_IP),
+    "export AIPERF_MASTER_PORT={}".format(AIPERF_MASTER_PORT),
+]
 
 # ssh 用户用户名
-SSH_USERNAME = "wxp"
+USER = os.environ["USER"]
+SSH_USERNAME = USER
 
-# 自定义配置部分结束
 
 SERVER_LIST = []
 
@@ -27,6 +44,7 @@ TRIAL_LIST = []
 
 TRIAL_LIST=json.loads(open("trial.json","r").read())
 
+ENV_CMD = "\n".join(ENV_CMD)
 
 
 def create_trial(request):
@@ -161,10 +179,8 @@ def sshKill():
     global SERVER_LIST, TRIAL_LIST
     
     for server in SERVER_LIST:
-        #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} cp /mnt/zoltan/public/dataset/imagenet/aiperf_ctrl/kill.sh /root".format(server["ip"]))
-        #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /root; bash kill.sh &'".format(server["ip"]))
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/kill.sh {}".format(SSH_USERNAME, server["ip"], HOMEPATH))
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} 'cd {}; bash kill.sh &'".format(SSH_USERNAME, server["ip"], HOMEPATH))
+        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} cp {}/AIPerf/aiperf_ctrl/kill.sh {}".format(SSH_USERNAME, server["ip"], AIPERF_WORKDIR, AIPERF_SLAVE_WORKDIR))
+        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} 'cd {}; bash kill.sh &'".format(SSH_USERNAME, server["ip"], AIPERF_SLAVE_WORKDIR))
     return
     
 
@@ -175,7 +191,7 @@ def sshExec(server, trial):
         ENV_CMD
     )
 
-    bashCmd += "cd '/mnt/zoltan/public/dataset/imagenet/AIPerf/examples/trials/network_morphism/imagenet/.'\n"
+    bashCmd += "cd '{}/AIPerf/examples/trials/network_morphism/imagenet/.'\n".format(AIPERF_WORKDIR)
     for k in trial["env"]:
         v = trial["env"][k]
         if k=="CUDA_VISIBLE_DEVICES":
@@ -193,24 +209,23 @@ def sshExec(server, trial):
         )
     
     bashCmd += (
-        "/usr/bin/curl --location --request POST 'http://172.23.33.30:9987/api/trial/finish' " +
+        "/usr/bin/curl --location --request POST 'http://{}:{}/api/trial/finish' ".format(AIPERF_MASTER_IP, AIPERF_MASTER_PORT) +
         "--header 'Content-Type: application/json' --data '{\"trial\":\""
         +trial["env"]["NNI_TRIAL_JOB_ID"] +"\"}'"
     )
-    f=open("tmp.sh","w")
+    f=open("{}/AIPerf/aiperf_ctrl/tmp.sh".format(AIPERF_WORKDIR),"w")
     f.write(bashCmd)
     f.close()
-    #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /imagenet/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(server["ip"], trial["env"]["NNI_EXP_ID"]) )
-    #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} cp /imagenet/aiperf_ctrl/tmp.sh /root".format(server["ip"]))
-    #os.system("sshpass -p 123123 ssh -p 222 -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{} 'cd /root; bash tmp.sh >stdout.log 2>stderr.log &'".format(server["ip"]))
-    os.system("ssh -o ConnectTimeout=10 {}@{} 'cd /mnt/zoltan/public/dataset/imagenet/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(SSH_USERNAME, server["ip"], trial["env"]["NNI_EXP_ID"]) )
-    os.system("ssh -o ConnectTimeout=10 {}@{} 'mkdir {}/aiperflog/{} ; cp /mnt/zoltan/public/dataset/imagenet/AIPerf/aiperf_ctrl/tmp.sh {}/aiperflog/{}'".format(
+    # TODO: set env before this cmd or remove it ?
+    #os.system("ssh -o ConnectTimeout=10 {}@{} 'cd {}/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(SSH_USERNAME, server["ip"], AIPERF_WORKDIR, trial["env"]["NNI_EXP_ID"]) )
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'mkdir {}/aiperflog/{} ; cp {}/AIPerf/aiperf_ctrl/tmp.sh {}/aiperflog/{}'".format(
         SSH_USERNAME, 
         server["ip"], 
-        HOMEPATH,
+        AIPERF_SLAVE_WORKDIR,
         trial["env"]["NNI_TRIAL_JOB_ID"],
-        HOMEPATH,
+        AIPERF_WORKDIR,
+        AIPERF_SLAVE_WORKDIR,
         trial["env"]["NNI_TRIAL_JOB_ID"]
     ))
-    os.system("ssh -o ConnectTimeout=10 {}@{} 'cd {}/aiperflog/{}; source tmp.sh >stdout.log 2>stderr.log &'".format(SSH_USERNAME,server["ip"], HOMEPATH, trial["env"]["NNI_TRIAL_JOB_ID"]))
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'cd {}/aiperflog/{}; source tmp.sh >stdout.log 2>stderr.log &'".format(SSH_USERNAME,server["ip"], AIPERF_SLAVE_WORKDIR, trial["env"]["NNI_TRIAL_JOB_ID"]))
     return

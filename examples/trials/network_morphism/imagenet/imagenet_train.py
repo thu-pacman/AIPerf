@@ -254,7 +254,7 @@ def train_eval(esargs, RCV_CONFIG, seqid):
     callback = tf.keras.callbacks.LearningRateScheduler(scheduler2)
 
     # save weights
-    checkpoint_dir = os.environ["HOME"] + "/nni/experiments/" + str(nni.get_experiment_id()) + "/checkpoint/" + str(
+    checkpoint_dir = os.environ["AIPERF_WORKDIR"] + "/nni/experiments/" + str(nni.get_experiment_id()) + "/checkpoint/" + str(
         nni.get_trial_id())
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
@@ -307,7 +307,7 @@ if __name__ == "__main__":
     net = None
     args = get_args()
     try:
-        experiment_path = os.environ["HOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id())
+        experiment_path = os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id())
         lock = multiprocessing.Lock()
         context = zmq.Context()
         socket = context.socket(zmq.REQ)
@@ -389,7 +389,7 @@ if __name__ == "__main__":
                  'train_time': 0, 'start_date': start_date}, f)
 
         pid = os.getpid()
-        trial_log_path = os.environ["HOME"] + "/nni/experiments/" + str(nni.get_experiment_id()) + '/trials/' + str(
+        trial_log_path = os.environ["AIPERF_WORKDIR"] + "/nni/experiments/" + str(nni.get_experiment_id()) + '/trials/' + str(
             nni.get_trial_id()) + '/trial.log'
         p = multiprocessing.Process(target=utils.trial_activity, args=(trial_log_path, pid,))
         p.daemon = True

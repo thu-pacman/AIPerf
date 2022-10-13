@@ -183,8 +183,8 @@ def process_log(trial_id_list, experiment_data, dur, experiment_path):
 
 def cal_report_results(expid):
     id_dict = {}
-    nnidir = os.path.join(os.environ["HOME"], "nni/experiments/")
-    mountdir = os.path.join(os.environ["HOME"], "mountdir/nni/experiments/")
+    nnidir = os.path.join(os.environ["AIPERF_WORKDIR"], "nni/experiments/")
+    mountdir = os.path.join(os.environ["AIPERF_WORKDIR"], "mountdir/nni/experiments/")
     experiment_path = os.path.join(mountdir, expid)
     #获取sequence_id和trial_id，根据sequence_id从大到小排序
     for trials in os.listdir(os.path.join(nnidir, expid,'trials')):

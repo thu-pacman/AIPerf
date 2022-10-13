@@ -7,7 +7,7 @@ API_ROOT_URL = '/api/v1/nni-pai'
 
 BASE_URL = 'http://{}'
 
-HOME_DIR = os.path.join(os.environ['HOME'], 'nni')
+HOME_DIR = os.path.join(os.environ['AIPERF_WORKDIR'], 'nni')
 
 LOG_DIR = os.environ['NNI_OUTPUT_DIR']
 

@@ -224,7 +224,7 @@ def train_eval(args):
     callback = tf.keras.callbacks.LearningRateScheduler(scheduler2)
 
     # save weights
-    # checkpoint_dir = os.environ["HOME"] + "/nni/experiments/" + str(nni.get_experiment_id()) + "/checkpoint/" + str(
+    # checkpoint_dir = os.environ["AIPERF_WORKDIR"] + "/nni/experiments/" + str(nni.get_experiment_id()) + "/checkpoint/" + str(
     #     nni.get_trial_id())
     # if not os.path.exists(checkpoint_dir):
     #     os.makedirs(checkpoint_dir)

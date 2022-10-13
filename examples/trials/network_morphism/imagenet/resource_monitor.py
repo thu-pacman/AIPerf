@@ -87,7 +87,7 @@ def record_device_info():
 if __name__ == "__main__":
     args = get_args()
     experiment_id = args.id
-    HOMEPATH = os.environ.get("HOME","/")
+    HOMEPATH = os.environ.get("AIPERF_WORKDIR","/")
     log_path = HOMEPATH + '/mountdir/device_info/' + experiment_id + '/' + os.environ['SLURMD_NODENAME']
     if not os.path.isdir(log_path):
         os.makedirs(log_path)
