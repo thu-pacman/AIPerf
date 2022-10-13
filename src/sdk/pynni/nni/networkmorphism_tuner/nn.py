@@ -136,8 +136,7 @@ class CnnGenerator(NetworkGenerator):
                 temp_input_channel,
                 64,
                 kernel_size=7,
-                stride=2,
-                padding=3),
+                stride=2),
             output_node_id
         )
         output_node_id = graph.add_layer(
