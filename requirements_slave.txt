@@ -1,0 +1,8 @@
+zmq
+sklearn
+psutil
+dill
+
+#手动安装对应版本
+#torch
+#tensorflow

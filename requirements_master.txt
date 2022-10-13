@@ -1,0 +1,8 @@
+sklearn
+pyyaml
+django
+schema
+colorama
+ruamel.yaml
+matplotlib
+jinja2
