@@ -59,7 +59,7 @@ def main_grid(time, values, save_folder, filename):
     #plt.show()
 
 def main(args, save_folder):
-    results, trial_id_list, experiment_data = score.cal_report_results(args.id)
+    results, trial_id_list, experiment_data = score.cal_report_results(args.id, args.dir)
     main_grid(results['real_time'], results['GFLOPS'], save_folder, 'Score (in GFLOPS).png')
     main_grid(results['real_time'], results['Error'], save_folder, 'Error(%).png')
     main_grid(results['real_time'], results['Score'], save_folder, 'Regulated Score (in GFLOPS).png')
