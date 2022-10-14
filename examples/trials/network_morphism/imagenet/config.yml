@@ -1,8 +1,8 @@
 authorName: default
 experimentName: example_imagenet-network-morphism-test
-trialConcurrency: 1
-maxExecDuration: 3h
-maxTrialNum: 6
+trialConcurrency: 2
+maxExecDuration: 24h
+maxTrialNum: 9999
 trainingServicePlatform: local
 useAnnotation: false
 logLevel: trace
@@ -24,15 +24,14 @@ tuner:
 trial:
   command: CUDA_VISIBLE_DEVICES=0 \
            python3 imagenet_train.py \
-           --slave 1 \
-           --ip 172.23.33.30 \
-           --batch_size 48 \
-           --warmup_1 1 --warmup_2 2 --warmup_3 3 --epoch 10 \
+           --slave 2 \
+           --ip ${AIPERF_MASTER_IP} \
+           --batch_size 448 \
+           --epoch 60 \
            --initial_lr 1e-1 \
            --final_lr 0 \
-           --num_parallel_calls 10 \
-           --train_data_dir /mnt/zoltan/public/dataset/final/train/ \
-           --val_data_dir /mnt/zoltan/public/dataset/final/val/ 
+           --train_data_dir /share/sth/train/ \
+           --val_data_dir /share/sth/val/ 
 
   codeDir: .
   gpuNum: 0
