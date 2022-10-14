@@ -2,20 +2,6 @@ from django.http import JsonResponse
 import json
 import os
 
-
-# 自定义配置部分开始
-# 环境加载，根据实际环境调整
-ENV_CMD = [
-    "source /usr/local/Modules/init/bash",
-    "module load cuda-10.2/cuda cuda-10.2/cudnn-7.6.5",
-]
-# 自定义配置部分结束
-
-
-
-
-
-
 # 总工作目录
 AIPERF_WORKDIR = os.environ['AIPERF_WORKDIR']
 # 计算节点工作目录
@@ -23,6 +9,9 @@ AIPERF_SLAVE_WORKDIR = os.environ['AIPERF_SLAVE_WORKDIR']
 # master节点ip与port
 AIPERF_MASTER_IP = os.environ['AIPERF_MASTER_IP']
 AIPERF_MASTER_PORT = os.environ['AIPERF_MASTER_PORT']
+
+with open("server_env_init.sh", "r") as f:
+    ENV_CMD = [f.read()]
 
 ENV_CMD += [
     "export AIPERF_WORKDIR={}".format(AIPERF_WORKDIR),
@@ -44,7 +33,7 @@ TRIAL_LIST = []
 
 TRIAL_LIST=json.loads(open("trial.json","r").read())
 
-ENV_CMD = "\n".join(ENV_CMD)
+ENV_CMD = "\n".join(ENV_CMD) + "\n"
 
 
 def create_trial(request):
@@ -218,7 +207,7 @@ def sshExec(server, trial):
     f.close()
     # TODO: set env before this cmd or remove it ?
     #os.system("ssh -o ConnectTimeout=10 {}@{} 'cd {}/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(SSH_USERNAME, server["ip"], AIPERF_WORKDIR, trial["env"]["NNI_EXP_ID"]) )
-    os.system("ssh -o ConnectTimeout=10 {}@{} 'mkdir {}/aiperflog/{} ; cp {}/AIPerf/aiperf_ctrl/tmp.sh {}/aiperflog/{}'".format(
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'mkdir -p {}/aiperflog/{} ; cp {}/AIPerf/aiperf_ctrl/tmp.sh {}/aiperflog/{}'".format(
         SSH_USERNAME, 
         server["ip"], 
         AIPERF_SLAVE_WORKDIR,

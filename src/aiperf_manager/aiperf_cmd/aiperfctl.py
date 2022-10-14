@@ -98,7 +98,7 @@ def term_sig_handler(signum, frame):
 
 def start_dispatcher(experiment_config):
     global dispatch_pid
-    msg_dispatcher_command = "/usr/bin/python3 -m nni --exp_params {}".format(
+    msg_dispatcher_command = "python3 -m nni --exp_params {}".format(
         base64.b64encode(json.dumps(experiment_config).encode()).decode()
     )
     # print(msg_dispatcher_command)
@@ -175,9 +175,8 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     logger.info("launch_experiment")
     # 0. warm up
     try :
-        os.mkdir(os.environ["AIPERF_WORKDIR"]+"/nni")
-        os.mkdir(os.environ["AIPERF_WORKDIR"]+"/nni/experiments")
-    except:
+        os.makedirs(os.environ["AIPERF_WORKDIR"]+"/nni/experiments")
+    except Exception as e:
         pass
     nni_config = Config(config_file_name)
     experiment_config = nni_config.get_config("experimentConfig")
@@ -199,7 +198,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     os.mkdir(NNI_CKPT_DIR)
 
     NNI_WORK_DIR = os.environ["AIPERF_WORKDIR"]+"/mountdir/nni/experiments/"+NNI_EXP_ID
-    os.mkdir(NNI_WORK_DIR)
+    os.makedirs(NNI_WORK_DIR)
 
     logger.info("NNI_EXP_ID: {}".format(NNI_EXP_ID))
 
@@ -210,7 +209,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     next_trial_seq_id = 0
     trial_concurrency = experiment_config["trialConcurrency"]
     # 创建必要的文件
-    with open("{}/trial_concurrency.txt", "w") as f:
+    with open("{}/trial_concurrency.txt".format(os.environ["AIPERF_WORKDIR"]), "w") as f:
         f.write(str(trial_concurrency))
     gen_cmd = (
         "GE" + 
@@ -358,7 +357,7 @@ def parse_args():
     # parse start command
     parser_start = subparsers.add_parser('create', help='create a new experiment')
     parser_start.add_argument('--config', '-c', required=True, dest='config', help='the path of yaml config file')
-    parser_start.add_argument('--server', '-s', required=True, dest='server', help='control server, http://0.0.0.0:9987', default="http://{}:{}".format(os.environ['AIPERF_MASTER_IP'], os.environ['AIPERF_MASTER_PORT']))
+    parser_start.add_argument('--server', '-s', dest='server', help='control server, http://0.0.0.0:9987', default="http://{}:{}".format(os.environ['AIPERF_MASTER_IP'], os.environ['AIPERF_MASTER_PORT']))
     parser_start.add_argument('--debug', '-d', action='store_true', help=' set debug mode')
     parser_start.set_defaults(func=create_experiment)
 

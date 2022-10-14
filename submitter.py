@@ -1,4 +1,3 @@
-#!/GPUFS/thu_wgchen_2/.conda/envs/aiperf_py36/bin/python3
 import os
 import sys
 import requests
