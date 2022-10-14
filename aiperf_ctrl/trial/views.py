@@ -3,6 +3,11 @@ import json
 import os
 import moxing as mox
 
+AIPERF_OBS_WORKDIR = os.environ['AIPERF_OBS_WORKDIR']
+AIPERF_MASTER_IP = os.environ['AIPERF_MASTER_IP']
+AIPERF_MASTER_PORT = os.environ['AIPERF_MASTER_PORT']
+AIPERF_NPU_NUM_PER_NODE = os.environ['AIPERF_NPU_NUM_PER_NODE']
+
 SERVER_LIST = []
 
 SERVER_LIST=json.loads(open("servers.json","r").read())
@@ -93,7 +98,7 @@ def query_trial(request):
         return JsonResponse(res)
 
     """
-    finish_trials = mox.file.list_directory("obs://aiperf/aiperf/runtime/finish/")
+    finish_trials = mox.file.list_directory("obs://{}/runtime/finish/".format(AIPERF_OBS_WORKDIR))
     for t in TRIAL_LIST:
         if (t["status"]=="running") and (t["env"]["NNI_TRIAL_JOB_ID"] in finish_trials):
             t["status"]="finish"
@@ -171,13 +176,13 @@ def sshKill():
                 "cmd":"ps -aux | grep resource_monitor | grep -v grep | grep -v manage | awk '{print $2}' | xargs kill"
             }
         ]
-        f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "r")
+        f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "r")
         datas = json.loads(f.read())
         f.close()
         for idx in range(len(datas)):
             datas[idx]["id"] = datas[idx]["id"] + 1
             datas[idx]["cmds"] = cmds
-        f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "w")
+        f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "w")
         f.write(json.dumps(datas))
         f.close()
     return
@@ -187,14 +192,19 @@ def sshExec(server, trial):
     print("sshExec")
     global SERVER_LIST, TRIAL_LIST
     HOST_IP = os.environ["MA_CURRENT_IP"]
+    print("MA_CURRENT_IP:", HOST_IP)
+    print("AIPERF_MASTER_IP:", AIPERF_MASTER_IP)
     bashCmd = (
         "#!/usr/bin/bash -l\n " +
         "export no_proxy={}\n".format(HOST_IP) + 
         "export NO_PROXY={}\n".format(HOST_IP) +
         "export MINDSPORE_HCCL_CONFIG_PATH=/home/ma-user/modelarts/user-job-dir/code/AIPerf/hccl.json\n"+
-        "export NPU_NUM=8\n"+
+        "export NPU_NUM={}\n".format(AIPERF_NPU_NUM_PER_NODE)+
         "export LD_PRELOAD=/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1\n"+
-        "unset RANK_TABLE\nunset RANK_TABLE_FILE\n"
+        "unset RANK_TABLE\nunset RANK_TABLE_FILE\n"+
+        "export AIPERF_OBS_WORKDIR={}\n".format(AIPERF_OBS_WORKDIR) +
+        "export AIPERF_MASTER_IP={}\n".format(AIPERF_MASTER_IP) +
+        "export AIPERF_MASTER_PORT={}\n".format(AIPERF_MASTER_PORT)
     )
 
     bashCmd += "cd '/home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/.'\n"
@@ -217,12 +227,12 @@ def sshExec(server, trial):
         )
     
     bashCmd += (
-        "no_proxy={} NO_PROXY={} HTTP_PROXY='' HTTPS_PROXY='' /usr/bin/curl --noproxy {} --location --request POST 'http://{}:9987/api/trial/finish' ".format(HOST_IP, HOST_IP, HOST_IP, HOST_IP) +
+        "no_proxy={} NO_PROXY={} HTTP_PROXY='' HTTPS_PROXY='' /usr/bin/curl --noproxy {} --location --request POST 'http://{}:{}/api/trial/finish' ".format(HOST_IP, HOST_IP, HOST_IP, HOST_IP, AIPERF_MASTER_PORT) +
         "--header 'Content-Type: application/json' --data '{\"trial\":\""
         +trial["env"]["NNI_TRIAL_JOB_ID"] +"\"}'"
     )
     
-    mox_file_name = "obs://aiperf/aiperf/runtime/tmp_{}.sh".format(trial["env"]["NNI_TRIAL_JOB_ID"])
+    mox_file_name = "obs://{}/runtime/tmp_{}.sh".format(AIPERF_OBS_WORKDIR, trial["env"]["NNI_TRIAL_JOB_ID"])
     f = mox.file.File(mox_file_name, "w")
     f.write(bashCmd)
     f.close()
@@ -244,15 +254,25 @@ def sshExec(server, trial):
             "cmd":"source /home/ma-user/aiperflog/{}/tmp.sh >/home/ma-user/aiperflog/{}/stdout.log 2>/home/ma-user/aiperflog/{}/stderr.log &".format(trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"])
         }
     ]
-    f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "r")
+    f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "r")
     datas = json.loads(f.read())
     f.close()
+    not_found = True
+    default_id = 300
     for idx in range(len(datas)):
         if(datas[idx]["target"]!=server["ip"]):
+            default_id = datas[idx]["id"] + 1
             continue
         datas[idx]["id"] = datas[idx]["id"] + 1
         datas[idx]["cmds"] = cmds
-    f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "w")
+        not_found = False
+    if not_found:
+        datas.append({
+            "id": default_id,
+            "cmds:": cmds,
+            "target": server["ip"]
+        })
+    f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "w")
     f.write(json.dumps(datas))
     f.close()
     return

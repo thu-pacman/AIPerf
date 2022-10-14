@@ -7,7 +7,7 @@ import json
 from mindspore import context as mds_context
 N = 8
 
-
+USER_DIR = "/home/ma-user/modelarts/user-job-dir/"
 
 INSTANCE_SAMPLE={
     "devices": [
@@ -23,19 +23,30 @@ def get_args():
     """ get args from command line
     """
     parser = argparse.ArgumentParser("modelarts")
-    parser.add_argument("--data_url", type=str)
-    parser.add_argument("--data", type=str, default="/home/ma-user/modelarts/inputs/data_1/")
+    parser.add_argument("--dependence", type=str, default="/")
+    parser.add_argument("--data", type=str, required=True)
     return parser.parse_args()
 
 if __name__ == "__main__":
     if(int(os.environ["RANK_ID"])%8==0):
         timeStr = time.strftime('%Y-%m-%d_%H-%M-%S',time.localtime(time.time()))
         args = get_args()
-        os.system("pip3 install colorama ruamel.yaml torch schema --no-index -f {}".format(args.data_url))
-        os.system("pip3 install -e /home/ma-user/modelarts/user-job-dir/code/AIPerf/src/sdk/pynni/  --no-index -f {}".format(args.data_url))
-        os.system("pip3 install -e /home/ma-user/modelarts/user-job-dir/code/AIPerf/src/aiperf_manager/  --no-index -f {}".format(args.data_url))
+
+        AIPERF_OBS_WORKDIR = os.environ["AIPERF_OBS_WORKDIR"]
+
         for k in os.environ:
             print(k, " -----> ", os.environ[k])
+
+        #os.system("python3 -m pip install -r {}/code/AIPerf/requirements_master.txt".format(USER_DIR))
+        #os.system("python3 -m pip install -r {}/code/AIPerf/requirements_slave.txt".format(USER_DIR))
+        #os.system("pip3 install torch")
+        #os.system("python3 -m pip install -e {}/code/AIPerf/src/sdk/pynni/".format(USER_DIR))
+        #os.system("python3 -m pip install -e {}/code/AIPerf/src/aiperf_manager/".format(USER_DIR))
+
+
+        #os.system("pip3 install colorama ruamel.yaml torch schema --no-index -f {}".format(args.data_url))
+        #os.system("pip3 install -e {}/code/AIPerf/src/sdk/pynni/  --no-index -f {}".format(USER_DIR, args.data_url))
+        #os.system("pip3 install -e {}/code/AIPerf/src/aiperf_manager/  --no-index -f {}".format(USER_DIR, args.data_url))
         
         RANK_TABLE_PATH = os.environ["RANK_TABLE_FILE"]
         f = open(RANK_TABLE_PATH, "r")
@@ -43,7 +54,7 @@ if __name__ == "__main__":
         print("RANK_TABLE_RAW", RANK_TABLE_RAW)
         RANK_TABLE_DATA = json.loads( RANK_TABLE_RAW )
         N = len(RANK_TABLE_DATA["server_list"][0]["device"])
-        os.system("ps -ef | grep python")
+        # os.system("ps -ef | grep python")
         HCCL_SAMPLE={
             "board_id": "0x0020",
             "chip_info": "910",
@@ -96,23 +107,15 @@ if __name__ == "__main__":
             )
         print("AIPerf HCCL:", HCCL_SAMPLE)
         os.system("ifconfig")
-        f = open("/home/ma-user/modelarts/user-job-dir/code/AIPerf/hccl.json","w")
+        f = open("{}/code/AIPerf/hccl.json".format(USER_DIR),"w")
         f.write(json.dumps(HCCL_SAMPLE))
         f.close()
     else:
         mds_context.reset_auto_parallel_context()
         exit(0)
-        args = get_args()
-        RANK_TABLE_PATH = os.environ["RANK_TABLE_FILE"]
-        f = open(RANK_TABLE_PATH, "r")
-        RANK_TABLE_RAW = f.read()
-        print("RANK_TABLE_RAW", RANK_TABLE_RAW)
-        RANK_TABLE_DATA = json.loads( RANK_TABLE_RAW )
-        N = len(RANK_TABLE_DATA["server_list"][0]["device"])
-        time.sleep(20)
-    os.system("npu-smi info")
     mds_context.reset_auto_parallel_context()
     os.system("npu-smi info")
+    '''
     print("cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/ && unset RANK_TABLE_FILE && " + 
               " MINDSPORE_HCCL_CONFIG_PATH=/home/ma-user/modelarts/user-job-dir/code/AIPerf/hccl.json " +
               #" ASCEND_SLOG_PRINT_TO_STDOUT=1 " + 
@@ -121,10 +124,11 @@ if __name__ == "__main__":
     #          " MINDSPORE_HCCL_CONFIG_PATH=/home/ma-user/modelarts/user-job-dir/code/AIPerf/hccl.json " +
     #          #" ASCEND_SLOG_PRINT_TO_STDOUT=1 " + 
     #          "SIZE_LIMIT=28 NPU_NUM={} python3 multithread_demo.py  --batch_size 256  --epoch 15  --train_data_dir {}train/  --val_data_dir {}val/".format(N, args.data,args.data))
-    last_cmd_id = 1
+    '''
+    last_cmd_id = -1
     # MA_CURRENT_IP  ----->  172.16.0.56
     MA_CURRENT_IP = os.environ["MA_CURRENT_IP"]
-    fip = mox.file.File("obs://aiperf/aiperf/runtime/{}/{}".format(os.getenv("TASKID","NONE"),os.environ["MA_CURRENT_IP"]), "w")
+    fip = mox.file.File("obs://{}/runtime/{}/{}".format(AIPERF_OBS_WORKDIR, os.getenv("TASKID","NONE"), os.environ["MA_CURRENT_IP"]), "w")
     fip.write(MA_CURRENT_IP)
     fip.close()
     os.environ["LD_PRELOAD"]="/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1"
@@ -134,7 +138,7 @@ if __name__ == "__main__":
         datas = []
         
         try:
-            f = mox.file.File("obs://aiperf/aiperf/runtime/cmd.json", "r")
+            f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "r")
             datas = json.loads(f.read())
             f.close()
         except:

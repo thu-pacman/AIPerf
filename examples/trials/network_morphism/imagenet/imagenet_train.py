@@ -73,6 +73,10 @@ shuffle_buffer = 1024
 examples_per_epoch = shuffle_buffer
 TENSORBOARD_DIR = os.environ["NNI_OUTPUT_DIR"]
 
+AIPERF_OBS_WORKDIR = os.environ['AIPERF_OBS_WORKDIR']
+AIPERF_MASTER_IP = os.environ['AIPERF_MASTER_IP']
+AIPERF_MASTER_PORT = os.environ['AIPERF_MASTER_PORT']
+
 
 def get_args():
     """ get args from command line
@@ -523,7 +527,7 @@ if __name__ == "__main__":
             f.write("duration=" + str(time.time() - example_start_time) + "\n")
             f.write("best_acc=" + str(best_final) + "\n")
         
-        URL="http://{}:9987/api/trial/finish".format(args.ip)
+        URL="http://{}:{}/api/trial/finish".format(args.ip, AIPERF_MASTER_PORT)
         requests.post(URL, json={"trial":str(nni.get_trial_id())})
         # with open("obs://aiperf/aiperf/runtime/finish/{}".format(str(nni.get_trial_id()), "w") as f:
         #     f.write("ok")

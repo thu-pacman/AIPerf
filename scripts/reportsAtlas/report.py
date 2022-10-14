@@ -32,6 +32,7 @@ formatter = FuncFormatter(formatnum)
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--id",required = True, type=str, help="experiment_id")
+    parser.add_argument("--dir",required = True, type=str, help="log directory")
     parser.add_argument("--logs", type=bool, default=False, help="whether to save log")
     return parser.parse_args()
 
@@ -82,7 +83,7 @@ def main(args, save_folder):
 
 if __name__=='__main__':
     args = get_args()
-    save_path = os.path.join(os.environ["HOME"], "mountdir/nni/experiments/")
+    save_path = os.path.join(args.dir, "mountdir/nni/experiments/")
     save_path = os.path.join(save_path, args.id)
     save_folder = os.path.join(save_path, 'results')
     if not os.path.exists(save_folder):

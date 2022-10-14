@@ -51,8 +51,6 @@ from __future__ import print_function
 import os
 import sys
 
-from six.moves import xrange  # pylint: disable=redefined-builtin
-
 
 if __name__ == '__main__':
   if len(sys.argv) < 3:
@@ -73,7 +71,7 @@ if __name__ == '__main__':
     os.makedirs(labeled_data_dir)
 
   # Move all of the image to the appropriate sub-directory.
-  for i in xrange(len(labels)):
+  for i in range(len(labels)):
     basename = 'ILSVRC2012_val_000%.5d.JPEG' % (i + 1)
     original_filename = os.path.join(data_dir, basename)
     if not os.path.exists(original_filename):
