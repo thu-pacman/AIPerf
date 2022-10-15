@@ -237,15 +237,26 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
     dist_eval_network = ClassifyCorrectCell(net)
 
     # init weight
+    print("init weight by xavieruniform and truncatednormal")
+    init_conv2d = 0
+    init_dense = 0
+    total_layer = 0
     for _, cell in net.cells_and_names():
+        total_layer += 1
         if isinstance(cell, nn.Conv2d):
+            init_conv2d += 1
             cell.weight.set_data(weight_init.initializer(weight_init.XavierUniform(),
                                                         cell.weight.shape,
                                                         cell.weight.dtype))
         if isinstance(cell, nn.Dense):
+            init_dense += 1
             cell.weight.set_data(weight_init.initializer(weight_init.TruncatedNormal(),
                                                         cell.weight.shape,
                                                         cell.weight.dtype))
+    
+    print("init_conv2d:", init_conv2d)
+    print("init_dense:", init_dense)
+    print("total_layer:", total_layer)
 
     # init lr
     lr = get_lr(lr_init=0.0, lr_end=0.0, lr_max=0.8, warmup_epochs=0,
