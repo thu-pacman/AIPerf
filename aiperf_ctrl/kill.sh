@@ -1,3 +1,6 @@
-# TODO: fix name
-ps -aux | grep root | grep train | grep -v grep | awk '{print $2}' | xargs kill
-ps -aux | grep root | grep tmp.sh | grep -v grep | awk '{print $2}' | xargs kill
+#!/bin/bash
+set -x
+ps -aux | grep ${USER} | grep train | grep -v grep | awk '{print $2}' | xargs kill
+ps -aux | grep ${USER} | grep tmp.sh | grep -v grep | awk '{print $2}' | xargs kill
+ps -aux | grep ${USER} | grep aiperf | grep -v grep | awk '{print $2}' | xargs kill
+ps -aux | grep ${USER} | grep manage.py | grep -v grep | awk '{print $2}' | xargs kill
