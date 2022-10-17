@@ -176,11 +176,16 @@ python3 -m pip install tensorflow==2.5.0
 
 编译安装
 
+在**控制节点**和**所有计算节点**安装AutoML组件
+
 ```bash
-# 安装AutoML组件
 cd $AIPERF_WORKDIR/AIPerf/src/sdk/pynni/
 python3 -m pip install -e .
-# 安装aiperf控制组件
+```
+
+在**控制节点**安装aiperf控制组件
+
+```bash
 cd $AIPERF_WORKDIR/AIPerf/src/aiperf_manager/
 python3 -m pip install -e .
 ```
