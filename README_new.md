@@ -339,15 +339,24 @@ trial:
 
 注：若使用pyTorch，请在``` ${AIPERF_WORKDIR}/AIPerf/examples/trials/network_morphism/imagenetTorch/```下执行
 
-```
+```bash
 aiperf create -c config.yml
+```
+
+#### 如何停止
+
+直接```ctrl-c```终止```aiperf create -c config.yml```，然后执行
+
+```bash
+# 清理所有计算节点上的训练进程
+aiperf clean
 ```
 
 #### **查看运行过程**
 
 当测试运行过程中，运行以下程序会在终端打印experiment的Error、Score、Regulated Score等信息
 
-```
+```bash
 python3 $AIPERF_WORKDIR/AIPerf/scripts/reports/report.py --id  experiment_ID  
 ```
 
@@ -361,14 +370,14 @@ python3 $AIPERF_WORKDIR/AIPerf/scripts/reports/report.py --id  experiment_ID
 
 #### <span id="head13"> 停止实验</span>
 
-停止expriments,  退出前台的aiperf进程即可
+停止expriments,  退出前台的aiperf进程，然后调用```aiperf clean```清理所有计算节点未结束的进程，最后退出aiperf调度服务即可
 
 
 **保存日志&结果数据**
 
 运行以下程序可将测试产生的日志以及数据统一保存到```${AIPERF_WORKDIR}/mountdir/nni/experiments/experiment_ID/results/logs```中，便于实验分析
 
-```
+```bash
 python3 $AIPERF_WORKDIR/AIPerf/scripts/reports/report.py --id  experiment_ID  --logs True
 ```
 

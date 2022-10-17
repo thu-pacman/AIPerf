@@ -334,6 +334,19 @@ def create_experiment(args):
         print_error(exception)
         exit(1) 
 
+
+def clean_environment(args):
+    '''clean environment'''
+    headers = {'Content-Type': 'application/json;charset=UTF-8'}
+    STOP_URL = "{}/api/trial/stop".format(args.server)
+    CLEAR_URL = "{}/api/trial/clear".format(args.server)
+
+    logger.info("clean environment for all nodes by aiperf_ctrl")
+    requests.get(STOP_URL, headers=headers)
+    requests.get(CLEAR_URL, headers=headers)
+    return
+
+
 def aiperf_info(*args):
     logger.info("aiperf_info")
     if args[0].version:
@@ -360,6 +373,10 @@ def parse_args():
     parser_start.add_argument('--server', '-s', dest='server', help='control server, http://0.0.0.0:9987', default="http://{}:{}".format(os.environ['AIPERF_MASTER_IP'], os.environ['AIPERF_MASTER_PORT']))
     parser_start.add_argument('--debug', '-d', action='store_true', help=' set debug mode')
     parser_start.set_defaults(func=create_experiment)
+
+    parser_clean = subparsers.add_parser('clean', help='use aiperf_ctrl to clean environment for all nodes')
+    parser_clean.add_argument('--server', '-s', dest='server', help='control server, http://0.0.0.0:9987', default="http://{}:{}".format(os.environ['AIPERF_MASTER_IP'], os.environ['AIPERF_MASTER_PORT']))
+    parser_clean.set_defaults(func=clean_environment)
 
     args = parser.parse_args()
     args.func(args)

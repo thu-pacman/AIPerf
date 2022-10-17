@@ -168,8 +168,7 @@ def sshKill():
     global SERVER_LIST, TRIAL_LIST
     
     for server in SERVER_LIST:
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} cp {}/AIPerf/aiperf_ctrl/kill.sh {}".format(SSH_USERNAME, server["ip"], AIPERF_WORKDIR, AIPERF_SLAVE_WORKDIR))
-        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} 'cd {}; bash kill.sh &'".format(SSH_USERNAME, server["ip"], AIPERF_SLAVE_WORKDIR))
+        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} bash {}/AIPerf/aiperf_ctrl/kill.sh".format(SSH_USERNAME, server["ip"], AIPERF_WORKDIR))
     return
     
 
