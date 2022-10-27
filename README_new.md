@@ -294,44 +294,51 @@ python3 manage.py runserver ${AIPERF_MASTER_IP}:${AIPERF_MASTER_PORT}
 | 15   |        --warmup_3        |      warm up机制第三轮epoch数       |         45          |
 | 16   |   --num_parallel_calls   |        tfrecord数据加载加速         |         48          |
 
-可参照如下配置：
+可参照如下配置（注意要修改数据集位置）：
 
 ```
 authorName: default
 experimentName: example_imagenet-network-morphism-test
-trialConcurrency: 2		# 1
-maxExecDuration: 12h	# 2
-maxTrialNum: 30000
+trialConcurrency: 2
+maxExecDuration: 24h
+maxTrialNum: 9999
 trainingServicePlatform: local
 useAnnotation: false
+logLevel: trace
 tuner:
- \#choice: TPE, Random, Anneal, Evolution, BatchTuner, NetworkMorphism
- \#SMAC (SMAC should be installed through nnictl)
- builtinTunerName: NetworkMorphism
- classArgs:
-  optimize_mode: maximize
-  task: cv
-  input_width: 224
-  input_channel: 3
-  n_output_node: 1000
-  
+  #choice: TPE, Random, Anneal, Evolution, BatchTuner, NetworkMorphism
+  #SMAC (SMAC should be installed through nnictl)
+  builtinTunerName: NetworkMorphism
+  classArgs:
+    #choice: maximize, minimize
+    optimize_mode: maximize
+    #for now, this tuner only supports cv domain
+    task: cv
+    #input image width
+    input_width: 224
+    #input image channel
+    input_channel: 3
+    #number of classes
+    n_output_node: 1000
 trial:
- command: CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7  \                                  # 3
-       python3 imagenet_train.py \
-       --slave 2 \								  # 5
-       --ip ${AIPERF_MASTER_IP} \							  # 6
-       --batch_size 448 \						  # 7
-       --epoch 60 \						          # 8
-       --initial_lr 1e-1 \						  # 9
-       --final_lr 0 \						  # 10
-       --train_data_dir /root/datasets/imagenet/train/ \  # 11
-       --val_data_dir /root/datasets/imagenet/val/ # 12
+  command: CUDA_VISIBLE_DEVICES=0 \
+           python3 imagenet_train.py \
+           --slave 2 \
+           --ip ${AIPERF_MASTER_IP} \
+           --batch_size 448 \
+           --epoch 60 \
+           --initial_lr 1e-1 \
+           --final_lr 0 \
+           --train_data_dir /share/sth/train/ \
+           --val_data_dir /share/sth/val/
 
- codeDir: .
- gpuNum: 0
+  codeDir: .
+  gpuNum: 0
 ```
 
-* 注意配置文件中slave参数需要和trialConcurrency参数一致
+* 注意配置文件中slave参数需要和trialConcurrency参数一致，修改为**计算节点个数**
+* 修改CUDA_VISIBLE_DEVICES为计算节点所用的GPU
+* 需要修改--train_data_dir和--var_data_dir的位置以指向**计算节点数据集存储位置**
 
 ### 运行benchmark
 
