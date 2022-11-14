@@ -402,12 +402,7 @@ python3 $AIPERF_WORKDIR/AIPerf/scripts/reports/report.py --id  experiment_ID  --
 
 #### <span id="head16"> 推荐环境配置</span>
 
-- 环境：Ubuntu16.04
-
-- 软件：TensorFlow2.2.0，CUDA10.2，python3.6
-- Container：36个物理CPU核，512GB内存，8张GPU
-
-***NOTE: 推荐基于Intel Xeon Skylake Platinum8268 and NVIDIA Tesla NVLink v100配置***
+- 软件：TensorFlow2.5.0，CUDA11.2，cuDNN8.1，python3.8
 
 # 6. 二次开发与迁移
 

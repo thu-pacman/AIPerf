@@ -12,4 +12,4 @@ coverage
 
 # 根据具体环境手动安装tensorflow/pytorch, 例如
 # python3 -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
-# python3 -m pip install tensorflow=2.6.0
+# python3 -m pip install tensorflow==2.5.0
