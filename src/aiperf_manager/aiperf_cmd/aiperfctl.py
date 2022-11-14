@@ -79,7 +79,7 @@ def read_response(fio):
         length = int(header[2:])
     except:
         logging.info("ERROR!")
-        logging.info(fio.read(30))
+        logging.info(fio.read())
     data = fio.read(length)
     command = CommandType(header[:2])
     data = data.decode('utf8')

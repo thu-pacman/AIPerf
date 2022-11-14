@@ -1,4 +1,4 @@
-sklearn
+scikit-learn
 pyyaml
 django
 schema
@@ -6,3 +6,11 @@ colorama
 ruamel.yaml
 matplotlib
 jinja2
+
+# for pynni
+hyperopt==0.1.2
+json_tricks
+numpy
+scipy
+coverage
+
