@@ -1,0 +1,24 @@
+# Parallelism configuration
+tensor_model_parallel_size: 1
+
+# Model geometry
+micro_batch_size: 4
+hidden_size: 1024
+num_layers: 12
+top_k: 2
+num_experts: 2 # Per data parallel worker
+
+# Training configuration
+train_iters: 8000
+fp16: true
+
+# Data path 
+data_path: 
+    - "data/enwik8_text_document"
+vocab_file: "data/gpt2-vocab.json"
+merge_file: "data/gpt2-merges.txt"
+
+# Logging and misc
+log_interval: 100
+eval_interval: 500
+
