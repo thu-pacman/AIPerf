@@ -1095,7 +1095,7 @@ Refer to the [ModelZoo FAQ](https://gitee.com/mindspore/models#FAQ) for some com
 
 ## License
 
-[Apache License 2.0](https://github.com/thu-pacman/AIPerf/tree/atlas/Bert/LICENSE)
+[Apache License 2.0](https://github.com/thu-pacman/AIPerf/tree/Atlas/Bert/LICENSE)
 
 ## Reference
 This code is copied from https://gitee.com/mindspore/models/tree/master/official/nlp/bert.

@@ -462,7 +462,7 @@ Please check the official [homepage](https://gitee.com/mindspore/models).
 
 ## License
 
-[Apache License 2.0](https://github.com/thu-pacman/AIPerf/tree/atlas/DeepFM/LICENSE)
+[Apache License 2.0](https://github.com/thu-pacman/AIPerf/tree/Atlas/DeepFM/LICENSE)
 
 ## Reference
 This code is copied from https://gitee.com/mindspore/models/tree/master/official/recommend/DeepFM.
