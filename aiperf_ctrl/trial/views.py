@@ -200,7 +200,7 @@ def sshExec(server, trial):
         "export NO_PROXY={}\n".format(HOST_IP) +
         "export MINDSPORE_HCCL_CONFIG_PATH=/home/ma-user/modelarts/user-job-dir/code/AIPerf/hccl.json\n"+
         "export NPU_NUM={}\n".format(AIPERF_NPU_NUM_PER_NODE)+
-        "export LD_PRELOAD=/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1\n"+
+        "export LD_PRELOAD=/home/ma-user/anaconda3/envs/MindSpore/lib/libgomp.so\n"+
         "unset RANK_TABLE\nunset RANK_TABLE_FILE\n"+
         "export AIPERF_OBS_WORKDIR={}\n".format(AIPERF_OBS_WORKDIR) +
         "export AIPERF_MASTER_IP={}\n".format(AIPERF_MASTER_IP) +
@@ -216,7 +216,7 @@ def sshExec(server, trial):
         )
     bashCmd += (
         "no_proxy={} NO_PROXY={} HTTP_PROXY='' HTTPS_PROXY='' ".format(HOST_IP,HOST_IP) +
-        "LD_PRELOAD=/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1 "+
+        "LD_PRELOAD=/home/ma-user/anaconda3/envs/MindSpore/lib/libgomp.so "+
         "{}\n".format(trial["cmd"])
     )
     
@@ -269,7 +269,7 @@ def sshExec(server, trial):
     if not_found:
         datas.append({
             "id": default_id,
-            "cmds:": cmds,
+            "cmds": cmds,
             "target": server["ip"]
         })
     f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "w")

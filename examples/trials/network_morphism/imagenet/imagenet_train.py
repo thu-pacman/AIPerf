@@ -190,6 +190,7 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
     os.chdir(str(kernel_meta_file))
     ms_lock.acquire()
     print('++++  container: {}'.format(sck.gethostname()))
+    print('++++  device_num: {}'.format(device_num))
     ms_lock.release()
     # init context
     size=28
@@ -223,6 +224,7 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
         auto_parallel_context().set_all_reduce_fusion_split_indices([85, 160])
     else:
         mds_context.reset_auto_parallel_context()
+    print("AIPerf hccl reset init success")
 
     eval_batch_size = 256
     # create dataset
@@ -291,7 +293,7 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
     cb = [acc_cb]
 
      # train model
-    model._init(dataset_train, dataset_val)
+    model._init(dataset_train, dataset_val, epoch=epoch_size)
     start_date = time.strftime('%m/%d/%Y, %H:%M:%S', time.localtime(time.time()))
 
     ms_lock.acquire()

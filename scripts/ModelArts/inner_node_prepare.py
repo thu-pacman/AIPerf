@@ -43,11 +43,11 @@ for ip in ips_raw:
             },
             {
                 "type": "bash",
-                "cmd": "python3 -m pip install -e /home/ma-user/modelarts/user-job-dir/code/AIPerf/src/sdk/pynni"
+                "cmd": "for i in {1..3}; do python3 -m pip install -e /home/ma-user/modelarts/user-job-dir/code/AIPerf/src/sdk/pynni; done"
             },
             {
                 "type": "bash",
-                "cmd": "python3 -m pip install -e /home/ma-user/modelarts/user-job-dir/code/AIPerf/src/aiperf_manager"
+                "cmd": "for i in {1..3}; do python3 -m pip install -e /home/ma-user/modelarts/user-job-dir/code/AIPerf/src/aiperf_manager; done"
             },
             {
                 "type": "bash",

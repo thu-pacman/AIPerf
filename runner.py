@@ -29,6 +29,7 @@ def get_args():
 
 if __name__ == "__main__":
     if(int(os.environ["RANK_ID"])%8==0):
+        print("worker RANK_ID = ", os.environ["RANK_ID"])
         timeStr = time.strftime('%Y-%m-%d_%H-%M-%S',time.localtime(time.time()))
         args = get_args()
 
@@ -111,6 +112,7 @@ if __name__ == "__main__":
         f.write(json.dumps(HCCL_SAMPLE))
         f.close()
     else:
+        print("other RANK_ID = ", os.environ["RANK_ID"])
         mds_context.reset_auto_parallel_context()
         exit(0)
     mds_context.reset_auto_parallel_context()
@@ -131,7 +133,7 @@ if __name__ == "__main__":
     fip = mox.file.File("obs://{}/runtime/{}/{}".format(AIPERF_OBS_WORKDIR, os.getenv("TASKID","NONE"), os.environ["MA_CURRENT_IP"]), "w")
     fip.write(MA_CURRENT_IP)
     fip.close()
-    os.environ["LD_PRELOAD"]="/home/ma-user/miniconda3/envs/MindSpore-1.3.0-aarch64/lib/libgomp.so.1"
+    os.environ["LD_PRELOAD"]="/home/ma-user/anaconda3/envs/MindSpore/lib/libgomp.so"
     while(True):
         timeStr = time.strftime('%Y-%m-%d_%H-%M-%S',time.localtime(time.time()))
         print("{}:[{}]Idling...".format(timeStr, MA_CURRENT_IP))
@@ -147,6 +149,7 @@ if __name__ == "__main__":
             if(data["target"]!=os.environ["MA_CURRENT_IP"]):
                 continue
             if(data["id"] > last_cmd_id):
+                print("CURRENT[{}] receive NEW {} ".format(last_cmd_id, data["id"]))
                 last_cmd_id = data["id"]
                 
                 for idx in range(len(data["cmds"])):
