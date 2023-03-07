@@ -208,11 +208,11 @@ aiperf --help
 wget -P $AIPERF_WORKDIR https://github.com/AI-HPC-Research-Team/Weight/releases/download/AIPerf1.0/resnet50_weights_tf_dim_ordering_tf_kernels.h5
 ```
 
-# 4. 启动测试
+# 4. 启动测试(命令都在控制节点执行)
 
 ## 启动调度服务
 
-### 配置计算节点
+### 配置计算节点信息
 
 进入 ```${AIPERF_WORKDIR}/AIPerf/aiperf_ctrl```配置 servers.json ，每张计算卡的描述包括`ip`和`CUDA_VISIBLE_DEVICES`两部分，应保证servers.json的list的长度恰好等于等待测试的计算节点总数
 

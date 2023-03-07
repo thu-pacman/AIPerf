@@ -7,6 +7,9 @@ ruamel.yaml
 matplotlib
 jinja2
 
+zmq
+torch
+
 # for pynni
 hyperopt==0.1.2
 json_tricks
