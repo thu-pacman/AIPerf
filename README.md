@@ -206,6 +206,7 @@ aiperf --help
 
 ```bash
 wget -P $AIPERF_WORKDIR https://github.com/AI-HPC-Research-Team/Weight/releases/download/AIPerf1.0/resnet50_weights_tf_dim_ordering_tf_kernels.h5
+(确认md5sum结果为a7b3fe01876f51b976af0dea6bc144eb)
 ```
 
 # 4. 启动测试(命令都在控制节点执行)
