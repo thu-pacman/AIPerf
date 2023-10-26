@@ -112,9 +112,10 @@ def trial_activity(file_path, ppid):
 
     def ppid_gpu_info():
         '''判断主进程所占用的gpu使用率是否为0,如果不为0则返回1，连续采样5秒都为0，则返回0'''
-        local_device_protos = _device_lib.list_local_devices()
+        # local_device_protos = _device_lib.list_local_devices()
         # 获取当前进程可用的gpu索引
-        index = ','.join([x.name.split(':')[2] for x in local_device_protos if x.device_type == 'GPU'])
+        # index = ','.join([x.name.split(':')[2] for x in local_device_protos if x.device_type == 'GPU'])
+        index = os.environ["CUDA_VISIBLE_DEVICES"]
         for i in range(5):
             gpu_info = os.popen(
                 "nvidia-smi  dmon -c 1 -s u -i " + index + "|awk '{if($1 ~ /^[0-9]+$/){print $2}}'").readlines()

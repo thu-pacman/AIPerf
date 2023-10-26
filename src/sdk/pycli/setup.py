@@ -5,7 +5,7 @@ import setuptools
 
 setuptools.setup(
     name='nnicli',
-    version='999.0.0-developing',
+    version='1.0.0',
     packages=setuptools.find_packages(),
 
     python_requires='>=3.5',

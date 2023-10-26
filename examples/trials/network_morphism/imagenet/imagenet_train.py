@@ -116,8 +116,8 @@ def parse_rev_args(receive_msg, esargs):
     mirrored_strategy = tf.distribute.MirroredStrategy()
     with mirrored_strategy.scope():
         net = build_graph_from_json(receive_msg)
-        optimizer = SGD(lr=args.initial_lr, momentum=0.9, decay=1e-4)
-        optimizer = tf.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale=256)
+        optimizer = tf.keras.optimizers.legacy.SGD(lr=args.initial_lr, momentum=0.9, decay=1e-4)
+        optimizer = tf.compat.v1.train.experimental.enable_mixed_precision_graph_rewrite(optimizer, loss_scale=256)
         loss = tf.keras.losses.CategoricalCrossentropy(label_smoothing=args.smooth_factor)
 
         denseList = []

@@ -5,7 +5,7 @@ import setuptools
 
 setuptools.setup(
     name = 'nni-tool',
-    version = '999.0.0-developing',
+    version = '1.0.0',
     packages = setuptools.find_packages(exclude=['*test*']),
 
     python_requires = '>=3.5',

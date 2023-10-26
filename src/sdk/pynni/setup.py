@@ -9,7 +9,7 @@ def read(fname):
 
 setuptools.setup(
     name = 'nni-sdk',
-    version = '999.0.0-developing',
+    version = '1.0.0',
     packages = setuptools.find_packages(exclude=['tests']),
 
     python_requires = '>=3.5',

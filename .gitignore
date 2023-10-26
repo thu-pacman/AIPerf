@@ -9,3 +9,5 @@ src/nni_manager/dist/
 **/build/
 **/.ipynb_checkpoints/
 **/nni_sdk.egg-info/
+
+*.egg-info/

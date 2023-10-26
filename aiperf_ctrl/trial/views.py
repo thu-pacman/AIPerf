@@ -182,12 +182,11 @@ def sshExec(server, trial):
     bashCmd += "cd '{}/AIPerf/examples/trials/network_morphism/imagenet/.'\n".format(AIPERF_WORKDIR)
     for k in trial["env"]:
         v = trial["env"][k]
-        if k=="CUDA_VISIBLE_DEVICES":
-            v = server["CUDA_VISIBLE_DEVICES"]
         bashCmd += "export {}='{}'\n".format(
             k,
             v
         )
+    bashCmd += "export CUDA_VISIBLE_DEVICES='{}'\n".format(server["CUDA_VISIBLE_DEVICES"])
     bashCmd += "{}\n".format(trial["cmd"])
     
     for k in trial["env"]:
