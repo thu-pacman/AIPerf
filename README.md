@@ -21,6 +21,12 @@ AIPerf Benchmark基于微软NNI开源框架，以自动化机器学习（AutoML�
 
 # 部署 AIPerf
 
+## 0. 支持环境
+
+* cuda driver <= 11.8
+
+  由于tensorflow对高版本cuda driver支持的问题等，目前AIPerf无法在更高版本cuda driver下正常运行，需集群管理员自行降低版本
+
 ## 1. 环境NFS准备
 
 **AIPerf代码**等文件必须放置在共享存储下，能被所有计算节点访问到
