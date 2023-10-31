@@ -202,10 +202,12 @@ aiperf --help
 
 #### 下载模型权重
 
-将权重文件下载到AIPerf工作目录中
+将权重文件``resnet50_weights_tf_dim_ordering_tf_kernels.h5``下载并放到```$AIPERF_WORKDIR```下
+
+* 百度云盘 https://pan.baidu.com/s/1JBOh2XwetZAalLdmULBN2Q 提取码: 5nbc
 
 ```bash
-wget -P $AIPERF_WORKDIR https://github.com/AI-HPC-Research-Team/Weight/releases/download/AIPerf1.0/resnet50_weights_tf_dim_ordering_tf_kernels.h5
+mv resnet50_weights_tf_dim_ordering_tf_kernels.h5 $AIPERF_WORKDIR
 (确认md5sum结果为a7b3fe01876f51b976af0dea6bc144eb)
 ```
 
