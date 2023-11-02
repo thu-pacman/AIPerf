@@ -46,7 +46,7 @@ def find_all_trials(nnidir, expid, trial_id_list):
             elif ' val_acc' in f_list[index]:
                 if "".join(re.findall('Epoch (.*?)/',f_list[count],re.S)) == '1':
                     hp_list.append([])
-                hp_list[-1].extend([[int("".join(re.findall('Epoch (.*?)/',f_list[count],re.S))), conversion_time("".join(re.findall('\[(.*?)\]',f_list[index],re.S))),float("".join(re.findall(' val_acc.*?: (.*?)(?:\s|$)',f_list[index],re.S)))]])
+                hp_list[-1].extend([[int("".join(re.findall('Epoch (.*?)/',f_list[count],re.S))), conversion_time("".join(re.findall('\[(.*?)\]',f_list[index - 1],re.S))),float("".join(re.findall(' val_acc.*?: (.*?)(?:\s|$)',f_list[index],re.S)))]])
                 continue
             elif not f_list[index].strip():
                 continue
