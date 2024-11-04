@@ -60,6 +60,7 @@ def main_grid(time, values, save_folder, filename):
 
 def main(args, save_folder):
     results, trial_id_list, experiment_data = score.cal_report_results(args.id)
+    print(f"{results=}")
     main_grid(results['real_time'], results['GFLOPS'], save_folder, 'Score (in GFLOPS).png')
     main_grid(results['real_time'], results['Error'], save_folder, 'Error(%).png')
     main_grid(results['real_time'], results['Score'], save_folder, 'Regulated Score (in GFLOPS).png')
@@ -82,7 +83,7 @@ def main(args, save_folder):
 
 if __name__=='__main__':
     args = get_args()
-    save_path = os.path.join(os.environ["HOME"], "mountdir/nni/experiments/")
+    save_path = os.path.join(os.environ["AIPERF_WORKDIR"], "mountdir/nni/experiments/")
     save_path = os.path.join(save_path, args.id)
     save_folder = os.path.join(save_path, 'results')
     if not os.path.exists(save_folder):

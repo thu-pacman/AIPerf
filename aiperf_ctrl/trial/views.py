@@ -1,12 +1,35 @@
 from django.http import JsonResponse
 import json
 import os
-import moxing as mox
 
-AIPERF_OBS_WORKDIR = os.environ['AIPERF_OBS_WORKDIR']
+# 总工作目录
+AIPERF_WORKDIR = os.environ['AIPERF_WORKDIR']
+# 计算节点工作目录
+AIPERF_SLAVE_WORKDIR = os.environ['AIPERF_SLAVE_WORKDIR']
+# master节点ip与port
 AIPERF_MASTER_IP = os.environ['AIPERF_MASTER_IP']
 AIPERF_MASTER_PORT = os.environ['AIPERF_MASTER_PORT']
+
 AIPERF_NPU_NUM_PER_NODE = os.environ['AIPERF_NPU_NUM_PER_NODE']
+
+with open("server_env_init.sh", "r") as f:
+    ENV_CMD = [f.read()]
+
+ENV_CMD += [
+    "export AIPERF_WORKDIR={}".format(AIPERF_WORKDIR),
+    "export AIPERF_SLAVE_WORKDIR={}".format(AIPERF_SLAVE_WORKDIR),
+    "export AIPERF_MASTER_IP={}".format(AIPERF_MASTER_IP),
+    "export AIPERF_MASTER_PORT={}".format(AIPERF_MASTER_PORT),
+    "export AIPERF_NPU_NUM_PER_NODE={}".format(AIPERF_NPU_NUM_PER_NODE),
+    "export MS_WORKER_NUM={}".format(AIPERF_NPU_NUM_PER_NODE),
+    "export MS_SCHED_HOST=127.0.0.1",
+    "export MS_SCHED_PORT=8118",
+]
+
+# ssh 用户用户名
+USER = os.environ["USER"]
+SSH_USERNAME = USER
+
 
 SERVER_LIST = []
 
@@ -15,6 +38,9 @@ SERVER_LIST=json.loads(open("servers.json","r").read())
 TRIAL_LIST = []
 
 TRIAL_LIST=json.loads(open("trial.json","r").read())
+
+ENV_CMD = "\n".join(ENV_CMD) + "\n"
+
 
 def create_trial(request):
     global SERVER_LIST, TRIAL_LIST
@@ -96,21 +122,6 @@ def query_trial(request):
             "success":False
         }
         return JsonResponse(res)
-
-    """
-    finish_trials = mox.file.list_directory("obs://{}/runtime/finish/".format(AIPERF_OBS_WORKDIR))
-    for t in TRIAL_LIST:
-        if (t["status"]=="running") and (t["env"]["NNI_TRIAL_JOB_ID"] in finish_trials):
-            t["status"]="finish"
-
-            for server in SERVER_LIST:
-                if (server["status"]=="running") and (server["tag"]==t["env"]["NNI_TRIAL_JOB_ID"]):
-                    server["status"]="waiting"
-                    server["tag"]=""
-                    break
-            break
-    """
-
     reportData = json.loads(request.body.decode("utf-8"))
     res={
         "status":"finish"
@@ -161,64 +172,28 @@ def stop_all(request):
 
 def sshKill():
     global SERVER_LIST, TRIAL_LIST
-    if True:
-        cmds = [
-            {
-                "type":"bash",
-                "cmd":"ps -aux | grep imagenet_train | grep -v grep | grep -v manage | awk '{print $2}' | xargs kill"
-            },
-            {
-                "type":"bash",
-                "cmd":"ps -aux | grep tmp.sh | grep -v grep | grep -v manage | awk '{print $2}' | xargs kill"
-            }, #resource_monitor
-            {
-                "type":"bash",
-                "cmd":"ps -aux | grep resource_monitor | grep -v grep | grep -v manage | awk '{print $2}' | xargs kill"
-            }
-        ]
-        f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "r")
-        datas = json.loads(f.read())
-        f.close()
-        for idx in range(len(datas)):
-            datas[idx]["id"] = datas[idx]["id"] + 1
-            datas[idx]["cmds"] = cmds
-        f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "w")
-        f.write(json.dumps(datas))
-        f.close()
+    
+    for server in SERVER_LIST:
+        os.system("ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 {}@{} bash {}/AIPerf/aiperf_ctrl/kill.sh".format(SSH_USERNAME, server["ip"], AIPERF_WORKDIR))
     return
     
 
 def sshExec(server, trial):
-    print("sshExec")
     global SERVER_LIST, TRIAL_LIST
-    HOST_IP = os.environ["MA_CURRENT_IP"]
-    print("MA_CURRENT_IP:", HOST_IP)
-    print("AIPERF_MASTER_IP:", AIPERF_MASTER_IP)
     bashCmd = (
-        "#!/usr/bin/bash -l\n " +
-        "export no_proxy={}\n".format(HOST_IP) + 
-        "export NO_PROXY={}\n".format(HOST_IP) +
-        "export MINDSPORE_HCCL_CONFIG_PATH=/home/ma-user/modelarts/user-job-dir/code/AIPerf/hccl.json\n"+
-        "export NPU_NUM={}\n".format(AIPERF_NPU_NUM_PER_NODE)+
-        "export LD_PRELOAD=/home/ma-user/anaconda3/envs/MindSpore/lib/libgomp.so\n"+
-        "unset RANK_TABLE\nunset RANK_TABLE_FILE\n"+
-        "export AIPERF_OBS_WORKDIR={}\n".format(AIPERF_OBS_WORKDIR) +
-        "export AIPERF_MASTER_IP={}\n".format(AIPERF_MASTER_IP) +
-        "export AIPERF_MASTER_PORT={}\n".format(AIPERF_MASTER_PORT)
+        "#!/bin/bash -l\n"+
+        ENV_CMD
     )
 
-    bashCmd += "cd '/home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/.'\n"
+    bashCmd += "cd '{}/AIPerf/examples/trials/network_morphism/imagenet/.'\n".format(AIPERF_WORKDIR)
     for k in trial["env"]:
         v = trial["env"][k]
         bashCmd += "export {}='{}'\n".format(
             k,
             v
         )
-    bashCmd += (
-        "no_proxy={} NO_PROXY={} HTTP_PROXY='' HTTPS_PROXY='' ".format(HOST_IP,HOST_IP) +
-        "LD_PRELOAD=/home/ma-user/anaconda3/envs/MindSpore/lib/libgomp.so "+
-        "{}\n".format(trial["cmd"])
-    )
+    bashCmd += "export NPU_NUM='{}'\n".format(AIPERF_NPU_NUM_PER_NODE)
+    bashCmd += "{}\n".format(trial["cmd"])
     
     for k in trial["env"]:
         v = trial["env"][k]
@@ -227,52 +202,23 @@ def sshExec(server, trial):
         )
     
     bashCmd += (
-        "no_proxy={} NO_PROXY={} HTTP_PROXY='' HTTPS_PROXY='' /usr/bin/curl --noproxy {} --location --request POST 'http://{}:{}/api/trial/finish' ".format(HOST_IP, HOST_IP, HOST_IP, HOST_IP, AIPERF_MASTER_PORT) +
+        "/usr/bin/curl --location --request POST 'http://{}:{}/api/trial/finish' ".format(AIPERF_MASTER_IP, AIPERF_MASTER_PORT) +
         "--header 'Content-Type: application/json' --data '{\"trial\":\""
         +trial["env"]["NNI_TRIAL_JOB_ID"] +"\"}'"
     )
-    
-    mox_file_name = "obs://{}/runtime/tmp_{}.sh".format(AIPERF_OBS_WORKDIR, trial["env"]["NNI_TRIAL_JOB_ID"])
-    f = mox.file.File(mox_file_name, "w")
+    f=open("{}/AIPerf/aiperf_ctrl/tmp.sh".format(AIPERF_WORKDIR),"w")
     f.write(bashCmd)
     f.close()
-    cmds = [
-        {
-            "type":"bash",
-            "cmd":"cd /home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &".format(trial["env"]["NNI_EXP_ID"])
-        },
-        {
-            "type":"bash",
-            "cmd":"mkdir /home/ma-user/aiperflog/{} ".format(trial["env"]["NNI_TRIAL_JOB_ID"])
-        },
-        {
-            "type":"eval",
-            "cmd":"mox.file.copy(\"{}\", \"/home/ma-user/aiperflog/{}/tmp.sh\")".format(mox_file_name, trial["env"]["NNI_TRIAL_JOB_ID"])
-        },
-        {
-            "type":"bash",
-            "cmd":"source /home/ma-user/aiperflog/{}/tmp.sh >/home/ma-user/aiperflog/{}/stdout.log 2>/home/ma-user/aiperflog/{}/stderr.log &".format(trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"],trial["env"]["NNI_TRIAL_JOB_ID"])
-        }
-    ]
-    f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "r")
-    datas = json.loads(f.read())
-    f.close()
-    not_found = True
-    default_id = 300
-    for idx in range(len(datas)):
-        if(datas[idx]["target"]!=server["ip"]):
-            default_id = datas[idx]["id"] + 1
-            continue
-        datas[idx]["id"] = datas[idx]["id"] + 1
-        datas[idx]["cmds"] = cmds
-        not_found = False
-    if not_found:
-        datas.append({
-            "id": default_id,
-            "cmds": cmds,
-            "target": server["ip"]
-        })
-    f = mox.file.File("obs://{}/runtime/cmd.json".format(AIPERF_OBS_WORKDIR), "w")
-    f.write(json.dumps(datas))
-    f.close()
+    # TODO: set env before this cmd or remove it ?
+    #os.system("ssh -o ConnectTimeout=10 {}@{} 'cd {}/AIPerf/examples/trials/network_morphism/imagenet/; python3 resource_monitor.py --id {} &'".format(SSH_USERNAME, server["ip"], AIPERF_WORKDIR, trial["env"]["NNI_EXP_ID"]) )
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'mkdir -p {}/aiperflog/{} ; cp {}/AIPerf/aiperf_ctrl/tmp.sh {}/aiperflog/{}'".format(
+        SSH_USERNAME, 
+        server["ip"], 
+        AIPERF_SLAVE_WORKDIR,
+        trial["env"]["NNI_TRIAL_JOB_ID"],
+        AIPERF_WORKDIR,
+        AIPERF_SLAVE_WORKDIR,
+        trial["env"]["NNI_TRIAL_JOB_ID"]
+    ))
+    os.system("ssh -o ConnectTimeout=10 {}@{} 'cd {}/aiperflog/{}; source tmp.sh >stdout.log 2>stderr.log &'".format(SSH_USERNAME,server["ip"], AIPERF_SLAVE_WORKDIR, trial["env"]["NNI_TRIAL_JOB_ID"]))
     return

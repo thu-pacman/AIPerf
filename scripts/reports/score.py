@@ -43,13 +43,17 @@ def find_all_trials(nnidir, expid, trial_id_list):
             if "Epoch" in f_list[index]:
                 count = index
                 continue
-            elif ' val_acc' in f_list[index]:
-                if "".join(re.findall('Epoch (.*?)/',f_list[count],re.S)) == '1':
-                    hp_list.append([])
-                hp_list[-1].extend([[int("".join(re.findall('Epoch (.*?)/',f_list[count],re.S))), conversion_time("".join(re.findall('\[(.*?)\]',f_list[index],re.S))),float("".join(re.findall(' val_acc.*?: (.*?)(?:\s|$)',f_list[index],re.S)))]])
+            elif 'val_acc' in f_list[index]:
+                # if "".join(re.findall('Epoch (.*?)/',f_list[count],re.S)) == '1':
+                hp_list.append([])
+                epoch = "".join(re.findall('Epoch (.*?)/',f_list[count],re.S))
+                t = "".join(re.findall('\[(.*?)\]',f_list[index],re.S))
+                acc = float("".join(re.findall('best_val_acc:(.*?)(?:\s|$)',f_list[index],re.S)))
+                hp_list[-1].extend([[int(epoch), conversion_time(t),acc]])
                 continue
             elif not f_list[index].strip():
                 continue
+        print(f"{hp_list=}")
         if hp_list:
             print(trial_id, hp_list)
             experiment_data[trial_id] = hp_list
@@ -183,8 +187,8 @@ def process_log(trial_id_list, experiment_data, dur, experiment_path):
 
 def cal_report_results(expid):
     id_dict = {}
-    nnidir = os.path.join(os.environ["HOME"], "nni/experiments/")
-    mountdir = os.path.join(os.environ["HOME"], "mountdir/nni/experiments/")
+    nnidir = os.path.join(os.environ["AIPERF_WORKDIR"], "nni/experiments/")
+    mountdir = os.path.join(os.environ["AIPERF_WORKDIR"], "mountdir/nni/experiments/")
     experiment_path = os.path.join(mountdir, expid)
     #获取sequence_id和trial_id，根据sequence_id从大到小排序
     for trials in os.listdir(os.path.join(nnidir, expid,'trials')):

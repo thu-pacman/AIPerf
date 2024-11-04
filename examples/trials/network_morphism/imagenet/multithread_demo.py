@@ -7,7 +7,6 @@ import random
 import json
 import sys
 
-import nni.hyperopt_tuner.hyperopt_tuner as TPEtuner
 import multiprocessing
 from multiprocessing import Process, Queue, RLock
 
@@ -27,8 +26,6 @@ from dataset import create_dataset2 as create_dataset
 from CrossEntropySmooth import CrossEntropySmooth
 from lr_generator import get_lr, warmup_cosine_annealing_lr
 from metric import DistAccuracy, ClassifyCorrectCell
-
-import nni
 
 # imagenet2012
 Ntrain = 1281167
@@ -53,7 +50,9 @@ def build_graph_from_json():
     """
     from networkmorphism_tuner.graph import json_to_graph
     from networkmorphism_tuner.ProcessJson import ModifyJson
-    f = open('/home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/resnet50.json', 'r')
+    # f = open('/home/ma-user/modelarts/user-job-dir/code/AIPerf/examples/trials/network_morphism/imagenet/resnet50.json', 'r')
+    # f = open('/share/aiperf_workspace/AIPerf/examples/trials/network_morphism/imagenet/resnet50.json', 'r')
+    f = open('/share/aiperf_workspace/mountdir/nni/experiments/BjAVhteb/hyperparameter_epoch/GpLxj/model.json', 'r')
     a = json.load(f)
     RCV_CONFIG = json.dumps(a)
     f.close()
@@ -124,6 +123,12 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
     )
     target = 'Ascend'
 
+    if device_id >= 0:
+        os.environ['MS_ROLE'] = 'MS_WORKER'
+        os.environ['MS_NODE_ID'] = str(device_id)
+    else:
+        os.environ['MS_ROLE'] = 'MS_SCHED'
+
     import socket as sck
     kernel_meta_file = sck.gethostname() + '_' + str(device_id)
     if os.path.exists(kernel_meta_file):
@@ -145,7 +150,8 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
         enable_auto_mixed_precision=True,
         device_target=target,
         save_graphs=False,
-        device_id=device_id,
+        # device_id=device_id,
+        device_id=max(0, device_id),
         max_call_depth=2000,
         #graph_memory_max_size=str((31-size)*1024 * 1024 * 1024),
         variable_memory_max_size="{}GB".format(size)
@@ -224,7 +230,7 @@ def mds_train_eval(dataset_path_train, dataset_path_val, epoch_size, batch_size,
 
      # train model
     print("model._init")
-    model._init(dataset_train, dataset_val)
+    model._init(dataset_train, dataset_val, epoch=epoch_size)
     start_date = time.strftime('%m/%d/%Y, %H:%M:%S', time.localtime(time.time()))
 
     ms_lock.acquire()
@@ -249,12 +255,13 @@ if __name__ == "__main__":
     init_search_space_point = {"dropout_rate": 0.0, "kernel_size": 3, "batch_size": args.batch_size}
     ms_lock = RLock()
     device_num = int(os.environ["NPU_NUM"])
-    device_id = int(os.environ["DEVICE_ID"])
+    # device_id = int(os.environ["DEVICE_ID"])
     process = []
     for i in range(device_num):
         device_id = i
         if(i==0):
             continue
+        print(f"start proc {i}")
         process.append(
             Process(
                 target=mds_train_eval,
@@ -272,8 +279,32 @@ if __name__ == "__main__":
                 )
             )
         )
+    
+    # sched
+    print(f"start scheduler")
+    device_id = -1
+    process.append(
+        Process(
+            target=mds_train_eval,
+            args=(
+                args.train_data_dir,                
+                args.val_data_dir,
+                args.epochs,
+                args.batch_size,
+                "./hp_demo.json",
+                device_id,
+                device_num,
+                True,
+                ms_lock,
+                init_search_space_point
+            )
+        )
+    )
+    
 
-    for i in range(device_num-1):
+
+    # for i in range(device_num-1):
+    for i in range(len(process)):
         process[i].start()
         
     device_id = 0

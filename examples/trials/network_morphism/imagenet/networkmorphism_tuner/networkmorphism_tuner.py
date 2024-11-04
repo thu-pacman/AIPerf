@@ -1,61 +1,52 @@
 # Copyright (c) Microsoft Corporation.
+# Copyright (c) Microsoft Corporation.
+# Copyright (c) Peng Cheng Laboratory.
+# Copyright (c) Microsoft Corporation. 
 # Copyright (c) Peng Cheng Laboratory.
 # Copyright (c) Tsinghua University.
-# Licensed under the MIT license.
-
-"""
-networkmorphsim_tuner.py
-"""
+# Copyright (c) Peng Cheng Laboratory.
+# All rights reserved.
+#
+# MIT License
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+# associated documentation files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge, publish, distribute,
+# sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or
+# substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+# NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+# OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# ==================================================================================================
 
 import logging
 import os
-import moxing as mox  
-mox.file.shift('os', 'mox')
+
+import logging
+
 
 from nni.tuner import Tuner
 from nni.utils import OptimizeMode, extract_scalar_reward
 from nni.networkmorphism_tuner.bayesian import BayesianOptimizer
 from nni.networkmorphism_tuner.nn import CnnGenerator, MlpGenerator
 from nni.networkmorphism_tuner.utils import Constant
-from nni.networkmorphism_tuner.graph import graph_to_json, json_to_graph
 
-# v1.1
-import multiprocessing
+from nni.networkmorphism_tuner.graph import graph_to_json, json_to_graph
 import time
 import nni
+import multiprocessing
+
 logger = logging.getLogger("NetworkMorphism_AutoML")
 lock=multiprocessing.Lock()
 
 class NetworkMorphismTuner(Tuner):
-    """
-    NetworkMorphismTuner is a tuner which using network morphism techniques.
-
-    Attributes
-    ----------
-    n_classes : int
-        The class number or output node number (default: ``10``)
-    input_shape : tuple
-        A tuple including: (input_width, input_width, input_channel)
-    t_min : float
-        The minimum temperature for simulated annealing. (default: ``Constant.T_MIN``)
-    beta : float
-        The beta in acquisition function. (default: ``Constant.BETA``)
-    algorithm_name : str
-        algorithm name used in the network morphism (default: ``"Bayesian"``)
-    optimize_mode : str
-        optimize mode "minimize" or "maximize" (default: ``"minimize"``)
-    verbose : bool
-        verbose to print the log (default: ``True``)
-    bo : BayesianOptimizer
-        The optimizer used in networkmorphsim tuner.
-    max_model_size : int
-        max model size to the graph (default: ``Constant.MAX_MODEL_SIZE``)
-    default_model_len : int
-        default model length (default: ``Constant.MODEL_LEN``)
-    default_model_width : int
-        default model width (default: ``Constant.MODEL_WIDTH``)
-    search_space : dict
-    """
+    """NetworkMorphismTuner is a tuner which using network morphism techniques."""
 
     def __init__(
             self,
@@ -72,25 +63,51 @@ class NetworkMorphismTuner(Tuner):
             max_model_size=Constant.MAX_MODEL_SIZE,
             default_model_len=Constant.MODEL_LEN,
             default_model_width=Constant.MODEL_WIDTH,
+            init_model_dir= Constant.FILE_DIR,
     ):
-        """
-        initilizer of the NetworkMorphismTuner.
-        """
-        # v1.1
-        exp_id = os.getcwd().split("/")[-2]
-        logPath = os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + exp_id + "/log"
-        self.path = os.path.join(logPath, path)
-        logger.info("self.path = " + self.path)
+        """ initilizer of the NetworkMorphismTuner.
 
-        if not os.path.exists(self.path):
-            os.makedirs(self.path)
+        Parameters
+        ----------
+        task : str
+            task mode, such as "cv","common" etc. (default: {"cv"})
+        input_width : int
+            input sample shape (default: {32})
+        input_channel : int
+            input sample shape (default: {3})
+        n_output_node : int
+            output node number (default: {10})
+        algorithm_name : str
+            algorithm name used in the network morphism (default: {"Bayesian"})
+        optimize_mode : str
+            optimize mode "minimize" or "maximize" (default: {"minimize"})
+        path : str
+            default mode path to save the model file (default: {"model_path"})
+        verbose : bool
+            verbose to print the log (default: {True})
+        beta : float
+            The beta in acquisition function. (default: {Constant.BETA})
+        t_min : float
+            The minimum temperature for simulated annealing. (default: {Constant.T_MIN})
+        max_model_size : int
+            max model size to the graph (default: {Constant.MAX_MODEL_SIZE})
+        default_model_len : int
+            default model length (default: {Constant.MODEL_LEN})
+        default_model_width : int
+            default model width (default: {Constant.MODEL_WIDTH})
+        init_model_list : list
+            store the remorph models , every node initializes
+        """
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+        self.path = os.path.join(os.getcwd(), path)
         if task == "cv":
             self.generators = [CnnGenerator]
         elif task == "common":
             self.generators = [MlpGenerator]
         else:
-            raise NotImplementedError(
-                '{} task not supported in List ["cv","common"]')
+            raise NotImplementedError('{} task not supported in List ["cv","common"]')
 
         self.n_classes = n_output_node
         self.input_shape = (input_width, input_width, input_channel)
@@ -104,8 +121,7 @@ class NetworkMorphismTuner(Tuner):
         self.verbose = verbose
         self.model_count = 0
 
-        self.bo = BayesianOptimizer(
-            self, self.t_min, self.optimize_mode, self.beta)
+        self.bo = BayesianOptimizer(self, self.t_min, self.optimize_mode, self.beta)
         self.training_queue = []
         self.descriptors = []
         self.history = []
@@ -116,13 +132,15 @@ class NetworkMorphismTuner(Tuner):
 
         self.search_space = dict()
 
-
     def update_search_space(self, search_space):
         """
         Update search space definition in tuner by search_space in neural architecture.
         """
         self.search_space = search_space
     
+    
+    # v1.1
+
     # v1.1
     def set_descriptors(self, model_id, generated_graph):
         self.descriptors[model_id] = generated_graph.extract_descriptor()
@@ -153,127 +171,75 @@ class NetworkMorphismTuner(Tuner):
         ----------
         parameter_id : int
         """
-        '''
+        #If there is no history, slave node will use the fake model.
         if not self.history:
-            self.init_search()
-
-        new_father_id = None
-        generated_graph = None
-        if not self.training_queue:
-            new_father_id, generated_graph = self.generate()
-            new_model_id = self.model_count
-            self.model_count += 1
-            self.training_queue.append(
-                (generated_graph, new_father_id, new_model_id))
-            self.descriptors.append(generated_graph.extract_descriptor())
-
-        graph, father_id, model_id = self.training_queue.pop(0)
-
-        # from graph to json
-        json_model_path = os.path.join(self.path, str(model_id) + ".json")
-        json_out = graph_to_json(graph, json_model_path)
-        self.total_data[parameter_id] = (json_out, father_id, model_id)
-
-        return json_out
-        '''
-        if not self.history:
-            #self.init_search()
             print("If there is no history, generate_parameters should not be called!")
             exit(1)
         total_start=time.time()
+        rate = 1
 
-        rate = 2
-        
-        f11=open("/root/xlei","a+")
-        f11.write("tuner.generate:"+"total time:"+str(total_start)+"\n")
-        f11.close()
-
-        if (os.path.exists(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time") and os.path.exists(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/c_time")):
-            f3 = open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time", "r")
-            g_t = float(f3.read())
-            f4 = open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/c_time", "r")
-            c_t = float(f4.read())
-            f11=open("/root/xlei","a+")
-            f11.write("tuner.generate:"+"total time:"+str(total_start)+"\n")
-            f11.close()
-            if (g_t != 0) and (c_t != 0):
-                realrate = int(c_t / g_t)
-                # f5 = open("/root/rate", "a+")
-                # f5.write(str(realrate))
-                # f5.write(" ")
-                # if realrate < 0:
-                #     realrate = 0 - realrate
+        if (os.path.exists(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time") and os.path.exists(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/train_time")):
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time", "r") as f:
+                generate_time = float(f.read())
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/train_time", "r") as f:
+                train_time = float(f.read())
+            if (generate_time != 0) and (train_time != 0):
+                realrate = int(train_time / generate_time)
                 if (realrate < 5) and (realrate > 1):
                     rate = int(realrate)
-                elif (realrate <= 1):
+                if (realrate <= 1):
                     rate = 1
 
         for i in range(rate):
             start=time.time()
             new_father_id = None
             generated_graph = None
-            f11=open("/root/xlei","a+")
-            f11.write("tuner.generate:"+"total time:"+str(total_start)+"\n")
-            f11.close()
             if not self.training_queue:
-                f11=open("/root/xlei","a+")
-                f11.write("self.training_queue: "+ str(self.training_queue)+'\n')
-                f11.close()
                 new_father_id, generated_graph = self.generate()
                 father_id,json_out,new_model_id = self.total_data[parameter_id]
                 self.training_queue.append((generated_graph, new_father_id, new_model_id))
                 #self.descriptors.append(generated_graph.extract_descriptor())
             else:
-                f11=open("/root/xlei","a+")
-                f11.write("tuner.generate: self.training_queue")
-                f11.close()
                 print("training_queue should be an empty list.")
                 exit(1)
 
             graph, father_id, model_id = self.training_queue.pop(0)
         # from graph to json
             json_model_path = os.path.join(self.path, str(model_id) + ".json")
-            f11=open('/root/json','a+')
-            f11.write(str(json_model_path)+'\n')
-            f11.close()
             json_out = graph_to_json(graph, json_model_path)
             end=time.time()
         #self.total_data[parameter_id] = (json_out, father_id, model_id)
             json_and_id="json_out="+str(json_out)+"+father_id="+str(father_id)+"+parameter_id="+str(parameter_id)+"+history="+"True"
             lock.acquire()
-            f1=open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+")
-            f1.write("single_generate=" + str(end - start)+"\n")
-            f1.close()
-            f=open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+")
-            f.write(json_and_id+"\n")
-            f.close()
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
+                f.write("single_generate=" + str(end - start)+"\n")
+
+            with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/graph.txt","a+") as f:
+                f.write(json_and_id+"\n")
             lock.release()
         total_end=time.time()
         lock.acquire()
-        f1=open(os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+")
-        f1.write("total_generate=" + str(total_end - total_start)+"\n")
-        f1.close()
+        with open(os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/trials/" + str(nni.get_trial_id()) + "/output.log","a+") as f:
+            f.write("total_generate=" + str(total_end - total_start)+"\n")
         lock.release()
 
         totime = total_end - total_start
         if totime<0:
             totime = 0-totime
 
-        f1 = open (os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/g_time","w+")
-        gt = totime/rate
-        f1.write(str(gt))
-        f1.close()
+        with open (os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + str(nni.get_experiment_id()) + "/generate_time","w+") as f:
+            gt = totime/rate
+            f.write(str(gt))
+
+        #return json_out, father_id
 
     def receive_trial_result(self, parameter_id, parameters, value, **kwargs):
-        """
-        Record an observation of the objective function.
+        """ Record an observation of the objective function.
 
         Parameters
         ----------
         parameter_id : int
-            the id of a group of paramters that generated by nni manager.
         parameters : dict
-            A group of parameters.
         value : dict/float
             if value is dict, it should have "default" key.
         """
@@ -283,13 +249,11 @@ class NetworkMorphismTuner(Tuner):
             raise RuntimeError("Received parameter_id not in total_data.")
 
         (_, father_id, model_id) = self.total_data[parameter_id]
-
+        
         graph = self.bo.searcher.load_model_by_id(model_id)
-
         # to use the value and graph
         self.add_model(reward, model_id)
         self.update(father_id, graph, reward, model_id)
-
 
     def init_search(self):
         """
@@ -312,14 +276,13 @@ class NetworkMorphismTuner(Tuner):
 
 
     def generate(self):
-        """
-        Generate the next neural architecture.
+        """Generate the next neural architecture.
 
         Returns
         -------
-        other_info : any object
+        other_info: any object
             Anything to be saved in the training queue together with the architecture.
-        generated_graph : Graph
+        generated_graph: Graph
             An instance of Graph.
         """
         generated_graph, new_father_id = self.bo.generate(self.descriptors)
@@ -332,8 +295,7 @@ class NetworkMorphismTuner(Tuner):
         return new_father_id, generated_graph
 
     def update(self, other_info, graph, metric_value, model_id):
-        """
-        Update the controller with evaluation result of a neural architecture.
+        """ Update the controller with evaluation result of a neural architecture.
 
         Parameters
         ----------
@@ -345,22 +307,15 @@ class NetworkMorphismTuner(Tuner):
             The final evaluated metric value.
         model_id: int
         """
-        '''
-        father_id = other_info
-        self.bo.fit([graph.extract_descriptor()], [metric_value])
-        self.bo.add_child(father_id, model_id)
-        '''
-        # v1.1
         father_id = other_info
         t1 = time.time()
         self.bo.fit([graph.extract_descriptor()], [metric_value])
         self.bo.add_child(father_id, model_id)
         t2 = time.time()
         print("Update time = " + str(t2 - t1))
-        
+
     def add_model(self, metric_value, model_id):
-        """
-        Add model to the history, x_queue and y_queue
+        """ Add model to the history, x_queue and y_queue
 
         Parameters
         ----------
@@ -372,9 +327,7 @@ class NetworkMorphismTuner(Tuner):
         -------
         model : dict
         """
-        if self.verbose:
-            logger.info("Saving model.")
-
+        
         # Update best_model text file
         ret = {"model_id": model_id, "metric_value": metric_value}
         self.history.append(ret)
@@ -384,10 +337,8 @@ class NetworkMorphismTuner(Tuner):
             file.close()
         return ret
 
-
     def get_best_model_id(self):
-        """
-        Get the best model_id from history using the metric value
+        """ Get the best model_id from history using the metric value
         """
 
         if self.optimize_mode is OptimizeMode.Maximize:
@@ -395,10 +346,8 @@ class NetworkMorphismTuner(Tuner):
                 "model_id"]
         return min(self.history, key=lambda x: x["metric_value"])["model_id"]
 
-
     def load_model_by_id(self, model_id):
-        """
-        Get the model by model_id
+        """Get the model by model_id
 
         Parameters
         ----------
@@ -418,8 +367,7 @@ class NetworkMorphismTuner(Tuner):
         return load_model
 
     def load_best_model(self):
-        """
-        Get the best model by model id
+        """ Get the best model by model id
 
         Returns
         -------
@@ -429,8 +377,7 @@ class NetworkMorphismTuner(Tuner):
         return self.load_model_by_id(self.get_best_model_id())
 
     def get_metric_value_by_id(self, model_id):
-        """
-        Get the model metric valud by its model_id
+        """ Get the model metric valud by its model_id
 
         Parameters
         ----------
@@ -449,4 +396,3 @@ class NetworkMorphismTuner(Tuner):
 
     def import_data(self, data):
         pass
-

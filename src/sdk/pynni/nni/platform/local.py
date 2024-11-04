@@ -2,8 +2,6 @@
 # Licensed under the MIT license.
 
 import os
-import moxing as mox
-mox.file.shift('os', 'mox')
 import sys
 import json
 import time
@@ -15,7 +13,10 @@ from ..utils import to_json
 
 _sysdir = trial_env_vars.NNI_SYS_DIR
 if not os.path.exists(os.path.join(_sysdir, '.nni')):
-    os.makedirs(os.path.join(_sysdir, '.nni'))
+    try:
+        os.makedirs(os.path.join(_sysdir, '.nni'))
+    except Exception as e:
+        print(f"Error in create .nni: {e}")
 _metric_file = open(os.path.join(_sysdir, '.nni', 'metrics'), 'wb')
 
 _outputdir = trial_env_vars.NNI_OUTPUT_DIR

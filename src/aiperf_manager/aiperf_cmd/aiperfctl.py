@@ -1,8 +1,3 @@
-from tkinter import N
-import warnings
- 
-warnings.filterwarnings('ignore')
-
 import argparse
 from concurrent.futures import thread
 import os
@@ -25,22 +20,19 @@ import threading
 import requests
 import signal
 import sys
-import torch
-import moxing as mox  
-
-mox.file.shift('os', 'mox')
 
 init(autoreset=True)
 logger = logging.getLogger("aiperfctrl")
 log_format = "INFO: %(asctime)s %(message)s"
 logging.basicConfig(
-    level=logging.CRITICAL,
+    level=logging.DEBUG,
     format=log_format,
     datefmt="%m/%d %I:%M:%S %p",
 )
-logger.setLevel(logging.INFO)
-logging.getLogger().setLevel(logging.CRITICAL)
-logging.getLogger("root").setLevel(logging.CRITICAL)
+
+if os.environ.get('COVERAGE_PROCESS_START'):
+    import coverage
+    coverage.process_startup()
 
 """
 /**
@@ -86,35 +78,26 @@ def read_response(fio):
     try:
         length = int(header[2:])
     except:
-        logger.info("ERROR!")
-        for i in  range(100):
-            logger.info(fio.read(30))
+        logging.info("ERROR!")
+        logging.info(fio.read())
     data = fio.read(length)
     command = CommandType(header[:2])
     data = data.decode('utf8')
-    logger.info('Received command, data: [%s...]', data[:40])
+    logging.getLogger(__name__).debug('Received command, data: [%s...]', data[:40])
     return command, data
 
 dispatch_pid = -1
-SUBMIT_URL=""
-HEARTBEAT_URL=""
-STOP_URL=""
-CLEAR_URL=""
 
 def term_sig_handler(signum, frame):
-    global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
     logger.info("AIPerf controller exiting")
-    headers = {'Content-Type': 'application/json;charset=UTF-8'}
     if(dispatch_pid!=-1):
         os.kill(dispatch_pid, signal.SIGKILL)
-    requests.get(STOP_URL, headers=headers)
-    requests.get(CLEAR_URL, headers=headers)
     sleep(1)
     logger.info("AIPerf controller exit!")
     sys.exit()
 
 def start_dispatcher(experiment_config):
-    global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
+    global dispatch_pid
     msg_dispatcher_command = "python3 -m nni --exp_params {}".format(
         base64.b64encode(json.dumps(experiment_config).encode()).decode()
     )
@@ -137,6 +120,7 @@ def start_dispatcher(experiment_config):
     command, data = read_response(child_stderr)
 
     sleep(2)
+    logger.info("dispatcher done")
 
     return process, child_stdin, child_stderr
 
@@ -181,7 +165,6 @@ TRIALS_LIST = []
 
 def launch_experiment(args, experiment_config, mode, config_file_name, experiment_id=None):
     '''follow steps to start rest server and start experiment'''
-    global dispatch_pid,SUBMIT_URL,HEARTBEAT_URL,STOP_URL,CLEAR_URL
     headers = {'Content-Type': 'application/json;charset=UTF-8'}
     SUBMIT_URL="{}/api/trial/create".format(args.server)
     HEARTBEAT_URL = "{}/api/trial/heartbeat".format(args.server)
@@ -189,9 +172,13 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     CLEAR_URL = "{}/api/trial/clear".format(args.server)
     signal.signal(signal.SIGTERM, term_sig_handler)
     signal.signal(signal.SIGINT, term_sig_handler)
+    global dispatch_pid
     logger.info("launch_experiment")
     # 0. warm up
-    
+    try :
+        os.makedirs(os.environ["AIPERF_WORKDIR"]+"/nni/experiments")
+    except Exception as e:
+        logger.error(f"mkdir error: {e}")
     nni_config = Config(config_file_name)
     experiment_config = nni_config.get_config("experimentConfig")
     print(
@@ -201,9 +188,8 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
         )
     )
 
-    AIPERF_OBS_WORKDIR = os.environ['AIPERF_OBS_WORKDIR']
     NNI_EXP_ID = "".join(random.sample(string.ascii_letters + string.digits, 8))
-    NNI_EXP_DIR = "obs://{}/runlog/nni/experiments/".format(AIPERF_OBS_WORKDIR)+NNI_EXP_ID
+    NNI_EXP_DIR = os.environ["AIPERF_WORKDIR"]+"/nni/experiments/"+NNI_EXP_ID
     NNI_EXP_LOG_DIR = NNI_EXP_DIR + "/log"
     NNI_TRIALS_DIR = NNI_EXP_DIR + "/trials"
     NNI_CKPT_DIR = NNI_EXP_DIR + "/checkpoint"
@@ -211,6 +197,9 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     os.mkdir(NNI_EXP_LOG_DIR)
     os.mkdir(NNI_TRIALS_DIR)
     os.mkdir(NNI_CKPT_DIR)
+
+    NNI_WORK_DIR = os.environ["AIPERF_WORKDIR"]+"/mountdir/nni/experiments/"+NNI_EXP_ID
+    os.makedirs(NNI_WORK_DIR)
 
     logger.info("NNI_EXP_ID: {}".format(NNI_EXP_ID))
 
@@ -220,6 +209,10 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
     # 2. 开一个trial poll 然后开始跑
     next_trial_seq_id = 0
     trial_concurrency = experiment_config["trialConcurrency"]
+    # 创建必要的文件
+    with open("{}/trial_concurrency.txt".format(os.environ["AIPERF_WORKDIR"]), "w") as f:
+        f.write(str(trial_concurrency))
+    logger.info("trial_concurrency.txt written")
     gen_cmd = (
         "GE" + 
         "0"*(6-len(str(len(str(trial_concurrency))))) +
@@ -249,7 +242,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
             NNI_SYS_DIR,
             NNI_OUTPUT_DIR,
             trial_concurrency,
-            experiment_config["trial"]["command"].replace("\\", "", 999999).replace("127.0.0.1",os.environ["MA_CURRENT_IP"])
+            experiment_config["trial"]["command"].replace("\\", "", 999999)
         )
         TRIALS_LIST.append(t)
         next_trial_seq_id += 1
@@ -260,8 +253,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
             json=t.to_submit_data()
         )
         requests.get(HEARTBEAT_URL, headers=headers)
-    
-    logger.setLevel(logging.WARNING)
+
     while True:
         logging.info("Current max trial id: {}".format(next_trial_seq_id-1))
 
@@ -300,7 +292,7 @@ def launch_experiment(args, experiment_config, mode, config_file_name, experimen
                     NNI_SYS_DIR,
                     NNI_OUTPUT_DIR,
                     trial_concurrency,
-                    experiment_config["trial"]["command"].replace("\\", "", 999999).replace("127.0.0.1",os.environ["MA_CURRENT_IP"])
+                    experiment_config["trial"]["command"].replace("\\", "", 999999)
                 )
                 TRIALS_LIST.append(t)
                 headers = {'Content-Type': 'application/json;charset=UTF-8'}
@@ -344,6 +336,19 @@ def create_experiment(args):
         print_error(exception)
         exit(1) 
 
+
+def clean_environment(args):
+    '''clean environment'''
+    headers = {'Content-Type': 'application/json;charset=UTF-8'}
+    STOP_URL = "{}/api/trial/stop".format(args.server)
+    CLEAR_URL = "{}/api/trial/clear".format(args.server)
+
+    logger.info("clean environment for all nodes by aiperf_ctrl")
+    requests.get(STOP_URL, headers=headers)
+    requests.get(CLEAR_URL, headers=headers)
+    return
+
+
 def aiperf_info(*args):
     logger.info("aiperf_info")
     if args[0].version:
@@ -367,9 +372,13 @@ def parse_args():
     # parse start command
     parser_start = subparsers.add_parser('create', help='create a new experiment')
     parser_start.add_argument('--config', '-c', required=True, dest='config', help='the path of yaml config file')
-    parser_start.add_argument('--server', '-s', required=True, dest='server', help='control server, http://0.0.0.0:9987')
+    parser_start.add_argument('--server', '-s', dest='server', help='control server, http://0.0.0.0:9987', default="http://{}:{}".format(os.environ['AIPERF_MASTER_IP'], os.environ['AIPERF_MASTER_PORT']))
     parser_start.add_argument('--debug', '-d', action='store_true', help=' set debug mode')
     parser_start.set_defaults(func=create_experiment)
+
+    parser_clean = subparsers.add_parser('clean', help='use aiperf_ctrl to clean environment for all nodes')
+    parser_clean.add_argument('--server', '-s', dest='server', help='control server, http://0.0.0.0:9987', default="http://{}:{}".format(os.environ['AIPERF_MASTER_IP'], os.environ['AIPERF_MASTER_PORT']))
+    parser_clean.set_defaults(func=clean_environment)
 
     args = parser.parse_args()
     args.func(args)

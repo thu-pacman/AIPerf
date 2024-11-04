@@ -21,8 +21,6 @@ import argparse
 from asyncore import write
 import logging
 import os
-import moxing as mox  
-mox.file.shift('os', 'mox')
 import time
 import zmq
 import random
@@ -73,7 +71,6 @@ shuffle_buffer = 1024
 examples_per_epoch = shuffle_buffer
 TENSORBOARD_DIR = os.environ["NNI_OUTPUT_DIR"]
 
-AIPERF_OBS_WORKDIR = os.environ['AIPERF_OBS_WORKDIR']
 AIPERF_MASTER_IP = os.environ['AIPERF_MASTER_IP']
 AIPERF_MASTER_PORT = os.environ['AIPERF_MASTER_PORT']
 
@@ -181,6 +178,11 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
     '''
     set_seed(1)
     target = 'Ascend'
+    if device_id >= 0:
+        os.environ['MS_ROLE'] = 'MS_WORKER'
+        os.environ['MS_NODE_ID'] = str(device_id)
+    else:
+        os.environ['MS_ROLE'] = 'MS_SCHED'
 
     import socket as sck
     kernel_meta_file = sck.gethostname() + '_' + str(device_id)
@@ -204,7 +206,8 @@ def mds_train_eval(q, hyper_params, receive_config, dataset_path_train, dataset_
         enable_auto_mixed_precision=True,
         device_target=target,
         save_graphs=False,
-        device_id=device_id,
+        # device_id=device_id,
+        device_id=max(0, device_id),
         max_call_depth=2000,
         #graph_memory_max_size=str((31-size)*1024 * 1024 * 1024),
         variable_memory_max_size="{}GB".format(size)
@@ -318,6 +321,7 @@ def train_eval_distribute(hyper_params, receive_config, trial_id, hp_path, curre
     trial_id:
     hp_path:
     '''
+    print(f"in train_eval_distribute")
 
     # caculate epoch
     loopnum = trial_id // args.slave
@@ -347,12 +351,18 @@ def train_eval_distribute(hyper_params, receive_config, trial_id, hp_path, curre
         process.append(Process(target=mds_train_eval,
                                args=(q, hyper_params, receive_config, args.train_data_dir, args.val_data_dir, 
                                    epoch_size, batch_size, hp_path, device_id, device_num, enable_hccl, ms_lock, current_hyperparameter)))
-    for i in range(device_num):
+    # scheduler
+    device_id = -1
+    process.append(Process(target=mds_train_eval,
+                           args=(q, hyper_params, receive_config, args.train_data_dir, args.val_data_dir, 
+                               epoch_size, batch_size, hp_path, device_id, device_num, enable_hccl, ms_lock, current_hyperparameter)))
+
+    for i in range(len(process)):
         process[i].start()
 
     print("Waiting for all subprocesses done...")
 
-    for i in range(device_num):
+    for i in range(len(process)):
         process[i].join()
 
     # release resource
@@ -404,11 +414,11 @@ if __name__ == "__main__":
         experiment_id = str(nni.get_experiment_id())
         trial_id = str(nni.get_trial_id())
         
-        experiment_path = os.environ["OBSHOME"] + "/mountdir/nni/experiments/" + experiment_id
+        experiment_path = os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + experiment_id
         if args.file_service:
             sys.path.append("/opt/file_service/client")
             import FileClient
-            graph_path = os.path.join(os.environ["OBSHOME"], 'graph', experiment_id)
+            graph_path = os.path.join(os.environ["AIPERF_WORKDIR"], 'graph', experiment_id)
             if not os.path.exists(graph_path):
                 os.makedirs(graph_path)
         # 开启模型生成和模型训练的异步执行
@@ -418,7 +428,10 @@ if __name__ == "__main__":
         socket = context.socket(zmq.REQ)
         tmpstr = 'tcp://' + args.ip + ':800081'
         socket.connect(tmpstr)
-        os.makedirs(experiment_path + "/trials/" + trial_id)
+        try:
+            os.makedirs(experiment_path + "/trials/" + trial_id)
+        except Exception as e:
+            print(f"Error: {e}")
 
         get_next_parameter_start = time.time()
         nni.get_next_parameter(socket)
@@ -494,6 +507,7 @@ if __name__ == "__main__":
             
         global hp_path
         hp_path = experiment_path + '/hyperparameter_epoch/' + str(nni.get_trial_id()) + '/0.json'
+        print(f"{hp_path=}")
 
         single_acc, current_ep = train_eval_distribute(init_search_space_point, RCV_CONFIG, int(nni.get_sequence_id()), hp_path, current_hyperparameter)
         print("HPO-" + str(train_num) + ",hyperparameters:" + str(init_search_space_point) + ",best_val_acc:" + str(single_acc))

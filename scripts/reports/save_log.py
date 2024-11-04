@@ -20,12 +20,12 @@ def save_log(result_path, experiments_id):
     log_path = os.path.join(result_path, 'logs')
     if not os.path.exists(log_path):
         os.mkdir(log_path)
-    os.system('cp -rf ' + os.environ["HOME"] + "/nni/experiments/" + experiments_id + '/checkpoint '+ log_path)
-    os.system('cp -f ' + os.environ["HOME"] + "/mountdir/nni/experiments/" + experiments_id + '/graph.txt ' + log_path)
-    os.system('cp -rf ' + os.environ["HOME"] + "/mountdir/nni/experiments/" + experiments_id + '/hyperparameter_epoch ' + log_path)
-    os.system('cp -f ' + os.environ["HOME"] + "/nni/experiments/" + experiments_id + '/log/dispatcher.log '+ log_path)
-    os.system('cp -f ' + os.environ["HOME"] + "/nni/experiments/" + experiments_id + '/log/nnimanager.log '+ log_path)
-    os.system('cp -rf ' + os.environ["HOME"] + "/nni/experiments/" + experiments_id + '/trials '+ log_path)
+    os.system('cp -rf ' + os.environ["AIPERF_WORKDIR"] + "/nni/experiments/" + experiments_id + '/checkpoint '+ log_path)
+    os.system('cp -f ' + os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + experiments_id + '/graph.txt ' + log_path)
+    os.system('cp -rf ' + os.environ["AIPERF_WORKDIR"] + "/mountdir/nni/experiments/" + experiments_id + '/hyperparameter_epoch ' + log_path)
+    os.system('cp -f ' + os.environ["AIPERF_WORKDIR"] + "/nni/experiments/" + experiments_id + '/log/dispatcher.log '+ log_path)
+    os.system('cp -f ' + os.environ["AIPERF_WORKDIR"] + "/nni/experiments/" + experiments_id + '/log/nnimanager.log '+ log_path)
+    os.system('cp -rf ' + os.environ["AIPERF_WORKDIR"] + "/nni/experiments/" + experiments_id + '/trials '+ log_path)
 
 def display_log(result):
     mat="{:^10}\t{:^10}\t{:^10}\t{:^10}"
